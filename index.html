@@ -6,6 +6,7 @@
 <meta name="theme-color" content="#14171a">
 <title>Gestión Bloques de Terciado</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
     --bg:#14171a; --panel:#1c2126; --panel2:#232a30; --line:#2e373f;
@@ -58,7 +59,8 @@
   @media(max-width:760px){.g3,.g4{grid-template-columns:1fr 1fr}.g2{grid-template-columns:1fr}}
 
   .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px}
-  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;cursor:pointer;transition:border-color .15s}
+  .kpi:hover{border-color:var(--amber)}
   .kpi .lab{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-dim)}
   .kpi .val{font-size:20px;font-weight:800;margin-top:6px}
   .kpi .sub{font-size:10.5px;color:var(--ink-dim);margin-top:4px}
@@ -104,6 +106,13 @@
   .subview{display:none}
   .subview.active{display:block}
   @media(max-width:640px){main{padding:14px 10px 60px}nav.tabs{top:53px}table{min-width:560px}}
+  @media(max-width:480px){
+    .g3,.g4,.g2{grid-template-columns:1fr}
+    .filters input,.filters select{flex:1 1 46%;min-width:0}
+    .view-head .btn{width:100%}
+    .totals-bar{gap:14px}
+    .kpis{grid-template-columns:1fr 1fr}
+  }
 </style>
 </head>
 <body>
@@ -139,6 +148,7 @@
     <button data-view="facturas">Facturas</button>
     <button data-view="compras">Compras</button>
     <button data-view="gastos">Gastos</button>
+    <button data-view="reportes">Reportes</button>
     <button data-view="proveedores">Proveedores</button>
     <button data-view="precios">Precios</button>
   </nav>
@@ -151,13 +161,14 @@
         <select id="dashYear" style="width:auto"></select>
       </div>
       <div class="kpis">
-        <div class="kpi amber"><div class="lab">Ventas netas</div><div class="val num" id="kVentas">—</div><div class="sub">Pedidos del año (neto)</div></div>
-        <div class="kpi sage"><div class="lab">Compras y gastos</div><div class="val num" id="kCompras">—</div><div class="sub">Compras del año (neto, incluye sueldos y arriendo pagados)</div></div>
-        <div class="kpi green"><div class="lab">Margen</div><div class="val num" id="kMargen">—</div><div class="sub">Ventas − compras y gastos</div></div>
-        <div class="kpi"><div class="lab">m³ fabricados</div><div class="val num" id="kM3">—</div><div class="sub">Volumen de pedidos del año</div></div>
-        <div class="kpi red"><div class="lab">Por cobrar</div><div class="val num" id="kPorCobrar">—</div><div class="sub">Facturas Henko emitidas y aún no pagadas (total c/IVA)</div></div>
-        <div class="kpi red"><div class="lab">Sueldos pendientes</div><div class="val num" id="kSueldosPend">—</div><div class="sub">Días trabajados sin pagar (todas las fechas)</div></div>
+        <div class="kpi amber" onclick="irReporte('ventas')"><div class="lab">Ventas netas</div><div class="val num" id="kVentas">—</div><div class="sub">Pedidos del año (neto)</div></div>
+        <div class="kpi sage" onclick="irReporte('compras')"><div class="lab">Compras y gastos</div><div class="val num" id="kCompras">—</div><div class="sub">Compras del año (neto, incluye sueldos y arriendo pagados)</div></div>
+        <div class="kpi green" onclick="irReporte('ventas')"><div class="lab">Margen</div><div class="val num" id="kMargen">—</div><div class="sub">Ventas − compras y gastos</div></div>
+        <div class="kpi" onclick="irReporte('ventas')"><div class="lab">m³ fabricados</div><div class="val num" id="kM3">—</div><div class="sub">Volumen de pedidos del año</div></div>
+        <div class="kpi red" onclick="irReporte('facturas')"><div class="lab">Por cobrar</div><div class="val num" id="kPorCobrar">—</div><div class="sub">Facturas Henko emitidas y aún no pagadas (total c/IVA)</div></div>
+        <div class="kpi red" onclick="irReporte('asistencia')"><div class="lab">Sueldos pendientes</div><div class="val num" id="kSueldosPend">—</div><div class="sub">Días trabajados sin pagar (todas las fechas)</div></div>
       </div>
+      <p class="muted" style="margin:-6px 0 14px">Toca una tarjeta para abrir su reporte con filtros y descarga a Excel.</p>
       <div class="grid g2">
         <div class="card"><h3 style="font-size:14px;margin-bottom:12px">Ventas vs Compras (neto mensual)</h3><div class="chart-box"><canvas id="chVsC"></canvas></div></div>
         <div class="card"><h3 style="font-size:14px;margin-bottom:12px">Compras y gastos por clasificación</h3><div class="chart-box"><canvas id="chClas"></canvas></div></div>
@@ -220,8 +231,8 @@
           <div class="field"><label>Tipo</label><select id="fTipo" onchange="toggleAdeboAsociada()"><option>Henko</option><option>Adebo</option></select></div>
           <div class="field"><label>N° factura</label><input id="fNumero"></div>
           <div class="field"><label>Fecha emisión</label><input id="fFecha" type="date"></div>
-          <div class="field" id="fAdeboWrap"><label>Factura Adebo asociada</label>
-            <select id="fAdebo"><option value="">— Sin asociar —</option></select>
+          <div class="field" id="fAdeboWrap"><label>Factura Adebo asociada <span class="muted">(elige o escribe el N°)</span></label>
+            <input id="fAdebo" list="dlAdebo" placeholder="Ej: 838">
           </div>
           <div class="field"><label>Detalle</label><input id="fDetalle" placeholder="Ej: Modelos 21229-21230"></div>
           <div class="field"><label>Pedidos asociados</label><input id="fPedidos" placeholder="Ej: Pedido 8"></div>
@@ -267,7 +278,15 @@
           <div class="field"><label>Total (con IVA)</label><input id="cTotal" type="number" min="0" oninput="calcCompra('total')"></div>
           <div class="field"><label>Forma de pago</label><select id="cPago"><option></option><option>Transferencia</option><option>Pago tarjeta</option><option>Efectivo</option><option>Crédito</option></select></div>
           <div class="field"><label>Cuenta de pago (banco)</label><input id="cCuenta" list="dlBancos" placeholder="Ej: BancoEstado"></div>
-          <div class="field"><label>Foto boleta/factura <span class="muted">(se guarda en Drive)</span></label><input id="cFoto" type="file" accept="image/*" onchange="fotoSeleccionada()"><span class="muted" id="cFotoInfo"></span></div>
+          <div class="field"><label>Boleta/factura <span class="muted">(se guarda en Drive)</span></label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <button type="button" class="btn ghost small" onclick="$('cFoto').click()">📁 Archivo</button>
+              <button type="button" class="btn ghost small" onclick="$('cFotoCam').click()">📷 Cámara</button>
+              <span class="muted" id="cFotoInfo"></span>
+            </div>
+            <input id="cFoto" type="file" accept="image/*" onchange="fotoCompra(this)" style="display:none">
+            <input id="cFotoCam" type="file" accept="image/*" capture="environment" onchange="fotoCompra(this)" style="display:none">
+          </div>
         </div>
         <div class="field" style="margin-top:12px"><label>Comentario</label><input id="cComent"></div>
         <p class="muted" style="margin-top:8px">Ingresa el <b>neto</b> o el <b>total</b>: el otro se calcula solo con IVA 19%.</p>
@@ -380,6 +399,15 @@
             <div class="field"><label>Fecha de pago</label><input id="arFecha" type="date"></div>
             <div class="field"><label>Monto</label><input id="arMonto" type="number" min="0"></div>
             <div class="field"><label>Cuenta de pago (banco)</label><input id="arCuenta" list="dlBancos"></div>
+            <div class="field"><label>Comprobante <span class="muted">(transferencia/boleta)</span></label>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                <button type="button" class="btn ghost small" onclick="$('arFoto').click()">📁 Archivo</button>
+                <button type="button" class="btn ghost small" onclick="$('arFotoCam').click()">📷 Cámara</button>
+                <span class="muted" id="arFotoInfo"></span>
+              </div>
+              <input id="arFoto" type="file" accept="image/*" onchange="fotoArriendo(this)" style="display:none">
+              <input id="arFotoCam" type="file" accept="image/*" capture="environment" onchange="fotoArriendo(this)" style="display:none">
+            </div>
           </div>
           <div class="field" style="margin-top:12px"><label>Comentario</label><input id="arComent" placeholder="Ej: Arriendo bodega julio"></div>
           <button class="btn" style="margin-top:12px" onclick="guardarArriendo()">Registrar arriendo</button>
@@ -389,6 +417,33 @@
           <div id="listaArriendos"></div>
         </div>
       </div>
+    </section>
+
+    <!-- ========== REPORTES ========== -->
+    <section class="view" id="view-reportes">
+      <div class="view-head">
+        <h2>Reportes</h2>
+        <button class="btn sage" onclick="descargarReporte()">⬇ Descargar Excel</button>
+      </div>
+      <div class="filters">
+        <select id="repTipo" onchange="renderReporte()">
+          <option value="ventas">Ventas (pedidos e items)</option>
+          <option value="compras">Compras y gastos</option>
+          <option value="facturas">Facturas</option>
+          <option value="asistencia">Asistencia</option>
+        </select>
+        <select id="repAnio" onchange="renderReporte()"></select>
+        <select id="repMes" onchange="renderReporte()">
+          <option value="">Todos los meses</option>
+          <option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option>
+          <option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option>
+          <option value="07">Julio</option><option value="08">Agosto</option><option value="09">Septiembre</option>
+          <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+        </select>
+        <input id="repTxt" placeholder="Buscar…" oninput="renderReporte()">
+      </div>
+      <div class="totals-bar" id="repResumen" style="margin:0 0 12px"></div>
+      <div id="repTabla"></div>
     </section>
 
     <!-- ========== PROVEEDORES ========== -->
@@ -436,6 +491,7 @@
   </main>
 
   <datalist id="dlProveedores"></datalist>
+  <datalist id="dlAdebo"></datalist>
   <datalist id="dlPedidos"></datalist>
   <datalist id="dlBancos">
     <option value="BancoEstado"><option value="Banco de Chile"><option value="Banco Santander">
@@ -574,17 +630,17 @@ function renderTodo(){
   renderAsistencia();
   renderSueldos();
   renderArriendos();
+  renderReporte();
 }
 
 function llenarDatalists(){
   $('dlProveedores').innerHTML = (S.data.proveedores||[]).map(p=>`<option value="${esc(p.Empresa)}">`).join('');
   $('dlPedidos').innerHTML = '<option value="General"><option value="Funcionamiento"><option value="Equipamiento">' +
     (S.data.pedidos||[]).map(p=>`<option value="${esc(p.Numero)}">`).join('');
-  // Facturas Adebo para asociar
+  // Facturas Adebo para asociar (se puede elegir o escribir)
   const adebo = (S.data.facturas||[]).filter(f=>f.Tipo==='Adebo')
     .sort((a,b)=>String(b.Fecha).localeCompare(String(a.Fecha)));
-  $('fAdebo').innerHTML = '<option value="">— Sin asociar —</option>' +
-    adebo.map(f=>`<option value="${esc(f.Numero)}">Adebo ${esc(f.Numero)} · ${esc(String(f.Detalle).slice(0,30))} · ${CLP(f.Total)}</option>`).join('');
+  $('dlAdebo').innerHTML = adebo.map(f=>`<option value="${esc(f.Numero)}">Adebo ${esc(f.Numero)} · ${esc(String(f.Detalle).slice(0,30))} · ${CLP(f.Total)}</option>`).join('');
   // Trabajadores activos
   const trabs = (S.data.trabajadores||[]).filter(t=>String(t.Activo).toUpperCase()!=='NO');
   $('aTrabajador').innerHTML = trabs.map(t=>`<option value="${t.ID}">${esc(t.Nombre)}</option>`).join('');
@@ -602,6 +658,10 @@ function llenarFiltros(){
   sel.innerHTML = [...years].sort().reverse().map(y=>`<option>${y}</option>`).join('');
   if(cur && [...years].includes(cur)) sel.value = cur;
   sel.onchange = renderDashboard;
+
+  const selR = $('repAnio'); const curR = selR.value;
+  selR.innerHTML = '<option value="">Todos los años</option>' + [...years].sort().reverse().map(y=>`<option>${y}</option>`).join('');
+  if(curR && [...years].includes(curR)) selR.value = curR;
 
   const mesesOpt = arr => '<option value="">Todos los meses</option>' +
     [...new Set(arr.map(x=>String(x.Fecha).slice(0,7)).filter(m=>m.length===7))].sort().reverse()
@@ -1036,25 +1096,42 @@ function leerDetalle(){
   })).filter(l=>l.descripcion);
 }
 
-function fotoSeleccionada(){
-  const file = $('cFoto').files[0];
-  S.fotoBase64 = null;
-  $('cFotoInfo').textContent = '';
-  if(!file) return;
+function comprimirFoto(file, cb){
   const img = new Image();
   const reader = new FileReader();
   reader.onload = e => { img.src = e.target.result; };
   img.onload = () => {
     // Comprimir a máx 1400px lado mayor, JPEG 0.75
     const max = 1400;
-    const esc = Math.min(1, max/Math.max(img.width, img.height));
+    const k = Math.min(1, max/Math.max(img.width, img.height));
     const cv = document.createElement('canvas');
-    cv.width = Math.round(img.width*esc); cv.height = Math.round(img.height*esc);
+    cv.width = Math.round(img.width*k); cv.height = Math.round(img.height*k);
     cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
-    S.fotoBase64 = cv.toDataURL('image/jpeg',0.75);
-    $('cFotoInfo').textContent = `✔ Foto lista (${Math.round(S.fotoBase64.length*0.75/1024)} KB)`;
+    cb(cv.toDataURL('image/jpeg',0.75));
   };
   reader.readAsDataURL(file);
+}
+
+function fotoCompra(el){
+  const file = el.files[0];
+  S.fotoBase64 = null; $('cFotoInfo').textContent = '';
+  if(!file) return;
+  comprimirFoto(file, b64=>{
+    S.fotoBase64 = b64;
+    $('cFotoInfo').textContent = `✔ Foto lista (${Math.round(b64.length*0.75/1024)} KB)`;
+    el.value = '';
+  });
+}
+
+function fotoArriendo(el){
+  const file = el.files[0];
+  S.arriendoFoto = null; $('arFotoInfo').textContent = '';
+  if(!file) return;
+  comprimirFoto(file, b64=>{
+    S.arriendoFoto = b64;
+    $('arFotoInfo').textContent = '✔ Comprobante listo';
+    el.value = '';
+  });
 }
 
 function limpiarCompraForm(){
@@ -1104,6 +1181,14 @@ async function guardarCompra(){
   if(!$('cProv').value.trim()) return toast('Falta el proveedor','err');
   const neto=+$('cNeto').value||0;
   if(!neto) return toast('Ingresa el neto o el total de la compra','err');
+  // El detalle (si existe) debe cuadrar con el neto
+  const detalle = leerDetalle();
+  if(detalle.length){
+    const suma = detalle.reduce((s,l)=>s+l.valorTotal,0);
+    if(Math.abs(suma-neto) > 5){
+      return toast(`El detalle suma ${CLP(suma)} pero el neto es ${CLP(neto)} — deben cuadrar antes de guardar`,'err');
+    }
+  }
   const editando = S.editCompraId;
   const btn = $('cGuardarBtn'); btn.disabled = true;
   try{
@@ -1115,7 +1200,7 @@ async function guardarCompra(){
       formaPago:$('cPago').value, comentario:$('cComent').value.trim(),
       cuentaPago:$('cCuenta').value.trim(),
       comprobanteBase64: S.fotoBase64,
-      detalle: leerDetalle()
+      detalle
     };
     if(editando){
       await api({ action:'updateCompra', id:editando, compra });
@@ -1379,10 +1464,12 @@ async function guardarArriendo(){
       proveedor:'Arriendo bodega', rut:'', documento:'Sin documento', numDocumento:'',
       neto:monto, iva:0, total:monto, formaPago:'Transferencia',
       comentario:$('arComent').value.trim()||'Arriendo bodega', cuentaPago:$('arCuenta').value.trim(),
+      comprobanteBase64: S.arriendoFoto,
       detalle:[]
     }});
     toast('Arriendo registrado ✔','ok');
     ['arMonto','arComent','arCuenta'].forEach(i=>$(i).value='');
+    S.arriendoFoto = null; $('arFotoInfo').textContent='';
     await cargarDatos();
   }catch(e){ toast(e.message,'err'); }
 }
@@ -1392,10 +1479,11 @@ function renderArriendos(){
   const ar = (S.data.compras||[]).filter(c=>c.Clasificacion==='Arriendo')
     .sort((a,b)=>String(b.Fecha).localeCompare(String(a.Fecha)));
   $('listaArriendos').innerHTML = ar.length ? tabla(
-    ['Fecha','Monto','Cuenta','Comentario',''],
+    ['Fecha','Monto','Cuenta','Comentario','📎',''],
     ar.map(c=>[c.Fecha,
       {html:`<span class="num"><b>${CLP(c.Total)}</b></span>`,cls:'r'},
       esc(c.CuentaPago||''), esc(c.Comentario),
+      {html: c.Comprobante?`<a href="${esc(c.Comprobante)}" target="_blank" title="Ver comprobante">📎</a>`:''},
       {html:`<div style="display:flex;gap:6px"><button class="btn ghost small" onclick="editarCompraDesdeArriendo('${c.ID}')">Editar</button>${S.rol==='admin'?`<button class="btn danger small" onclick="eliminarRegistro('Compras','${c.ID}','el arriendo del ${c.Fecha}')">Eliminar</button>`:''}</div>`}])
   ) : '<div class="empty">Sin arriendos registrados.</div>';
 }
@@ -1469,11 +1557,22 @@ function renderPrecios(){
   $('cfgB55').value = precioVigente('PRECIO_BLOQUE_55');
   $('cfgB100').value = precioVigente('PRECIO_BLOQUE_100');
   $('cfgDesde').value = hoyISO();
-  const rows = (S.data.config||[]).filter(r=>r.Clave!=='IVA').slice()
-    .sort((a,b)=>String(b.FechaVigencia).localeCompare(String(a.FechaVigencia)));
-  $('histPrecios').innerHTML = rows.length ? tabla(
-    ['Vigente desde','Concepto','Valor neto','Registrado por'],
-    rows.map(r=>[String(r.FechaVigencia).slice(0,10), r.Clave.replace('PRECIO_','').replace('_',' '),
+  const rows = (S.data.config||[]).filter(r=>r.Clave!=='IVA');
+  // Calcular "hasta": el tramo rige hasta que parte el siguiente de la misma clave
+  const porClave = {};
+  rows.slice().sort((a,b)=>String(a.FechaVigencia).localeCompare(String(b.FechaVigencia)))
+    .forEach(r=>{ (porClave[r.Clave]=porClave[r.Clave]||[]).push(r); });
+  const hastaDe = r => {
+    const arr = porClave[r.Clave];
+    const i = arr.indexOf(r);
+    return i < arr.length-1 ? String(arr[i+1].FechaVigencia).slice(0,10) : 'Sin término (vigente)';
+  };
+  const orden = rows.slice().sort((a,b)=>String(b.FechaVigencia).localeCompare(String(a.FechaVigencia)));
+  $('histPrecios').innerHTML = orden.length ? tabla(
+    ['Vigente desde','Vigente hasta','Concepto','Valor neto','Registrado por'],
+    orden.map(r=>[String(r.FechaVigencia).slice(0,10),
+      {html: hastaDe(r)==='Sin término (vigente)' ? '<span class="pill p-pag">Sin término (vigente)</span>' : hastaDe(r)},
+      r.Clave.replace('PRECIO_','').replace('_',' '),
       {html:`<span class="num">${CLP(r.Valor)}</span>`,cls:'r'}, r.RegistradoPor])
   ) : '<div class="empty">Sin historial.</div>';
   $('btnPrecios').style.display = S.rol==='admin' ? 'inline-block':'none';
@@ -1492,6 +1591,115 @@ async function guardarPrecios(){
     toast('Nuevo tramo de precios registrado ✔','ok');
     await cargarDatos();
   }catch(e){ toast(e.message,'err'); }
+}
+
+/* ================= REPORTES ================= */
+function irReporte(tipo){
+  document.querySelector('#tabs button[data-view=reportes]').click();
+  $('repTipo').value = tipo;
+  renderReporte();
+}
+
+function filtroFechaRep(f){
+  const y=$('repAnio').value, m=$('repMes').value;
+  f = String(f||'');
+  if(y && !f.startsWith(y)) return false;
+  if(m && f.slice(5,7)!==m) return false;
+  return true;
+}
+
+function datosReporte(){
+  const tipo=$('repTipo').value, txt=($('repTxt').value||'').toLowerCase();
+  const pasaTxt = s => !txt || String(s).toLowerCase().includes(txt);
+
+  if(tipo==='ventas'){
+    const peds={}; (S.data.pedidos||[]).forEach(p=>peds[p.ID]=p);
+    const rows=(S.data.items||[]).map(i=>({p:peds[i.PedidoID]||{}, i}))
+      .filter(x=>filtroFechaRep(x.p.Fecha))
+      .filter(x=>pasaTxt([x.p.Numero,x.p.Cliente,x.i.Modelo,x.p.Estado].join(' ')));
+    rows.sort((a,b)=>String(b.p.Fecha).localeCompare(String(a.p.Fecha)));
+    const exp = rows.map(x=>({ Pedido:x.p.Numero, Cliente:x.p.Cliente, Fecha:x.p.Fecha, Estado:x.p.Estado,
+      Modelo:x.i.Modelo, Forma:x.i.Forma, Cantidad:+x.i.Cantidad||0,
+      'Espesor (mm)':+x.i.EspesorMM||0, 'Ancho (mm)':+x.i.AnchoMM||0, 'Largo (mm)':+x.i.LargoMM||0,
+      'm3':+(+x.i.VolTotalM3||0).toFixed(4), 'Valor unitario':+x.i.ValorUnitario||0, 'Valor total':+x.i.ValorTotal||0 }));
+    const neto = exp.reduce((s,r)=>s+r['Valor total'],0), m3 = exp.reduce((s,r)=>s+r.m3,0);
+    return { nombre:'ventas', exp,
+      resumen:[['Pedidos', new Set(rows.map(x=>x.p.ID)).size],['Items',exp.length],['m³',M3(m3)],['Neto',CLP(neto)]],
+      head:['Pedido','Fecha','Estado','Modelo','Forma','Cant.','Dimensiones (mm)','m³','V. total'],
+      rows:rows.map(x=>[esc(x.p.Numero), x.p.Fecha, {html:pillEstado(x.p.Estado)}, esc(x.i.Modelo), x.i.Forma,
+        {html:`<span class="num">${x.i.Cantidad}</span>`,cls:'r'},
+        {html:`<span class="dim-chip">${x.i.EspesorMM} × ${x.i.AnchoMM} × ${x.i.LargoMM}</span>`},
+        {html:`<span class="num">${Number(x.i.VolTotalM3).toFixed(3)}</span>`,cls:'r'},
+        {html:`<span class="num">${CLP(x.i.ValorTotal)}</span>`,cls:'r'}]) };
+  }
+
+  if(tipo==='compras'){
+    const rows=(S.data.compras||[]).filter(c=>filtroFechaRep(c.Fecha))
+      .filter(c=>pasaTxt([c.Proveedor,c.Clasificacion,c.Asignacion,c.Comentario,c.CuentaPago].join(' ')))
+      .sort((a,b)=>String(b.Fecha).localeCompare(String(a.Fecha)));
+    const exp = rows.map(c=>({ Fecha:c.Fecha, Clasificacion:c.Clasificacion, Asignacion:c.Asignacion,
+      Proveedor:c.Proveedor, RUT:c.RUT, Documento:c.Documento, 'N° documento':c.NumDocumento,
+      Neto:+c.Neto||0, IVA:+c.IVA||0, Total:+c.Total||0,
+      'Forma de pago':c.FormaPago, 'Cuenta':c.CuentaPago||'', Comentario:c.Comentario }));
+    return { nombre:'compras', exp,
+      resumen:[['Compras',exp.length],['Neto',CLP(exp.reduce((s,r)=>s+r.Neto,0))],['Total',CLP(exp.reduce((s,r)=>s+r.Total,0))]],
+      head:['Fecha','Clasificación','Asignación','Proveedor','Doc.','Neto','Total','Cuenta'],
+      rows:rows.map(c=>[c.Fecha, c.Clasificacion, esc(c.Asignacion), esc(c.Proveedor),
+        (c.Documento||'')+(c.NumDocumento?' '+esc(c.NumDocumento):''),
+        {html:`<span class="num">${CLP(c.Neto)}</span>`,cls:'r'},
+        {html:`<span class="num"><b>${CLP(c.Total)}</b></span>`,cls:'r'}, esc(c.CuentaPago||'')]) };
+  }
+
+  if(tipo==='facturas'){
+    const rows=(S.data.facturas||[]).filter(f=>filtroFechaRep(f.Fecha))
+      .filter(f=>pasaTxt([f.Tipo,f.Numero,f.Detalle,f.Pedidos,f.Estado,f.FacturaAdebo].join(' ')))
+      .sort((a,b)=>String(b.Fecha).localeCompare(String(a.Fecha)));
+    const exp = rows.map(f=>({ Tipo:f.Tipo, 'N°':f.Numero, Fecha:f.Fecha, Detalle:f.Detalle,
+      Pedidos:f.Pedidos, 'Factura Adebo':f.FacturaAdebo||'', 'Orden de compra':f.OrdenCompra,
+      Neto:+f.Neto||0, IVA:+f.IVA||0, Total:+f.Total||0, Estado:f.Estado,
+      'Dcto. factoring':+f.DescuentoFactoring||0, Observaciones:f.Observaciones }));
+    const pend = exp.filter(r=>!/pagad|anulad/i.test(r.Estado)).reduce((s,r)=>s+r.Total,0);
+    return { nombre:'facturas', exp,
+      resumen:[['Facturas',exp.length],['Total',CLP(exp.reduce((s,r)=>s+r.Total,0))],['Pendiente de pago',CLP(pend)]],
+      head:['Tipo','N°','Fecha','Detalle','Fact. Adebo','Neto','Total','Estado'],
+      rows:rows.map(f=>[f.Tipo, f.Numero, f.Fecha, esc(f.Detalle), f.Tipo==='Henko'?esc(f.FacturaAdebo||'—'):'·',
+        {html:`<span class="num">${CLP(f.Neto)}</span>`,cls:'r'},
+        {html:`<span class="num"><b>${CLP(f.Total)}</b></span>`,cls:'r'}, {html:pillEstado(f.Estado)}]) };
+  }
+
+  // asistencia
+  const rows=(S.data.asistencia||[]).filter(a=>filtroFechaRep(a.Fecha))
+    .filter(a=>pasaTxt([a.Trabajador,a.TipoDia,a.Observacion].join(' ')))
+    .sort((a,b)=>String(b.Fecha).localeCompare(String(a.Fecha)));
+  const exp = rows.map(a=>({ Fecha:a.Fecha, Trabajador:a.Trabajador, 'Tipo de día':a.TipoDia,
+    Entrada:a.HoraEntrada, Salida:a.HoraSalida, 'Valor día':+a.ValorDia||0,
+    Pagado:a.Pagado, Observacion:a.Observacion||'' }));
+  const totalA = exp.reduce((s,r)=>s+r['Valor día'],0);
+  const pendA = exp.filter(r=>String(r.Pagado).toUpperCase()!=='SI').reduce((s,r)=>s+r['Valor día'],0);
+  return { nombre:'asistencia', exp,
+    resumen:[['Días',exp.length],['Total',CLP(totalA)],['Pendiente de pago',CLP(pendA)]],
+    head:['Fecha','Trabajador','Tipo','Entrada','Salida','Valor día','Pagado'],
+    rows:rows.map(a=>[a.Fecha, esc(a.Trabajador), a.TipoDia, a.HoraEntrada, a.HoraSalida,
+      {html:`<span class="num">${CLP(a.ValorDia)}</span>`,cls:'r'},
+      {html: String(a.Pagado).toUpperCase()==='SI'?'<span class="pill p-pag">Pagado</span>':'<span class="pill p-pen">Pendiente</span>'}]) };
+}
+
+function renderReporte(){
+  if(!S.data) return;
+  const d = datosReporte();
+  S._rep = d;
+  $('repResumen').innerHTML = d.resumen.map(([k,v])=>`<div><span>${k}</span><b class="num">${v}</b></div>`).join('');
+  $('repTabla').innerHTML = d.exp.length ? tabla(d.head, d.rows) : '<div class="empty">Sin datos con esos filtros.</div>';
+}
+
+function descargarReporte(){
+  const d = S._rep || datosReporte();
+  if(!d.exp.length) return toast('No hay datos para descargar con esos filtros','err');
+  const ws = XLSX.utils.json_to_sheet(d.exp);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Reporte');
+  XLSX.writeFile(wb, `Reporte_${d.nombre}_${hoyISO()}.xlsx`);
+  toast('Excel descargado ✔','ok');
 }
 
 /* ================= ELIMINAR ================= */
