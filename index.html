@@ -7,96 +7,64 @@
 <title>Gestión Bloques de Terciado</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-  /* ============ TOKENS ============ */
   :root{
-    --bg:#14171a;          /* carbón de taller */
-    --panel:#1c2126;
-    --panel2:#232a30;
-    --line:#2e373f;
-    --ink:#ece7dc;         /* papel kraft claro */
-    --ink-dim:#9aa4ac;
-    --amber:#e0a94f;       /* cola urea / madera */
-    --amber-deep:#b9832f;
-    --sage:#8fb8a8;        /* compras */
-    --red:#e07a6a;
-    --green:#8fca8f;
-    --radius:10px;
-    --mono:ui-monospace,'SF Mono','Cascadia Mono',Consolas,monospace;
+    --bg:#14171a; --panel:#1c2126; --panel2:#232a30; --line:#2e373f;
+    --ink:#ece7dc; --ink-dim:#9aa4ac;
+    --amber:#e0a94f; --amber-deep:#b9832f; --sage:#8fb8a8; --red:#e07a6a; --green:#8fca8f;
+    --radius:10px; --mono:ui-monospace,'SF Mono','Cascadia Mono',Consolas,monospace;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
-  body{
-    background:var(--bg);color:var(--ink);
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-    font-size:15px;-webkit-font-smoothing:antialiased;
-  }
+  body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:15px;-webkit-font-smoothing:antialiased}
   h1,h2,h3{font-weight:700;letter-spacing:.2px}
   .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
 
-  /* ============ LOGIN ============ */
   #loginScreen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:
     radial-gradient(900px 500px at 70% -10%,rgba(224,169,79,.10),transparent 60%),var(--bg);z-index:100}
   .login-card{width:min(380px,92vw);background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:34px 30px}
   .brand-mark{display:flex;align-items:center;gap:12px;margin-bottom:6px}
-  .brand-mark svg{flex:none}
   .brand-mark .t1{font-size:19px;font-weight:800;line-height:1.15}
   .brand-mark .t2{font-size:12px;color:var(--ink-dim);letter-spacing:.12em;text-transform:uppercase}
   .login-card form{margin-top:22px;display:flex;flex-direction:column;gap:12px}
   .field label{display:block;font-size:12px;color:var(--ink-dim);margin-bottom:5px;letter-spacing:.04em}
-  input,select,textarea{
-    width:100%;background:var(--bg);border:1px solid var(--line);border-radius:8px;
-    color:var(--ink);padding:10px 12px;font-size:15px;font-family:inherit;outline:none;
-  }
+  input,select,textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--ink);padding:10px 12px;font-size:15px;font-family:inherit;outline:none}
   input:focus,select:focus,textarea:focus{border-color:var(--amber)}
   input[type=number]{font-family:var(--mono)}
-  .btn{
-    border:none;border-radius:8px;padding:11px 16px;font-size:15px;font-weight:700;cursor:pointer;
-    background:var(--amber);color:#1d1509;transition:filter .15s;font-family:inherit;
-  }
+  input[type=file]{padding:7px;font-size:13px}
+  .btn{border:none;border-radius:8px;padding:11px 16px;font-size:15px;font-weight:700;cursor:pointer;background:var(--amber);color:#1d1509;transition:filter .15s;font-family:inherit}
   .btn:hover{filter:brightness(1.08)}
   .btn:disabled{opacity:.5;cursor:default}
   .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
   .btn.small{padding:7px 12px;font-size:13px}
   .btn.danger{background:transparent;border:1px solid var(--red);color:var(--red)}
+  .btn.sage{background:var(--sage);color:#0f1a16}
   #loginError{color:var(--red);font-size:13px;min-height:18px}
 
-  /* ============ LAYOUT ============ */
-  #app{display:none;min-height:100dvh;padding-bottom:76px}
-  header.top{
-    position:sticky;top:0;z-index:20;background:rgba(20,23,26,.92);backdrop-filter:blur(8px);
-    border-bottom:1px solid var(--line);padding:12px 18px;display:flex;align-items:center;gap:14px;
-  }
+  #app{display:none;min-height:100dvh;padding-bottom:40px}
+  header.top{position:sticky;top:0;z-index:20;background:rgba(20,23,26,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:12px 18px;display:flex;align-items:center;gap:14px}
   header.top .who{margin-left:auto;text-align:right;font-size:12px;color:var(--ink-dim)}
   header.top .who b{display:block;color:var(--ink);font-size:13px}
   nav.tabs{display:flex;gap:4px;padding:10px 14px;overflow-x:auto;border-bottom:1px solid var(--line);background:var(--bg);position:sticky;top:57px;z-index:19}
-  nav.tabs button{
-    flex:none;background:transparent;border:1px solid transparent;color:var(--ink-dim);
-    padding:8px 14px;border-radius:999px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;
-  }
+  nav.tabs button{flex:none;background:transparent;border:1px solid transparent;color:var(--ink-dim);padding:8px 14px;border-radius:999px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
   nav.tabs button.active{background:var(--panel2);color:var(--amber);border-color:var(--line)}
   main{padding:18px 16px 40px;max-width:1150px;margin:0 auto}
   .view{display:none}
   .view.active{display:block}
   .view-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap}
   .view-head h2{font-size:20px}
-
   .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:16px}
   .grid{display:grid;gap:12px}
   .g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
   @media(max-width:760px){.g3,.g4{grid-template-columns:1fr 1fr}.g2{grid-template-columns:1fr}}
 
-  /* KPI */
-  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
-  @media(max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px}
   .kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px}
   .kpi .lab{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-dim)}
-  .kpi .val{font-size:21px;font-weight:800;margin-top:6px}
-  .kpi.amber .val{color:var(--amber)}
-  .kpi.sage .val{color:var(--sage)}
-  .kpi.red .val{color:var(--red)}
-  .kpi.green .val{color:var(--green)}
+  .kpi .val{font-size:20px;font-weight:800;margin-top:6px}
+  .kpi .sub{font-size:10.5px;color:var(--ink-dim);margin-top:4px}
+  .kpi.amber .val{color:var(--amber)} .kpi.sage .val{color:var(--sage)}
+  .kpi.red .val{color:var(--red)} .kpi.green .val{color:var(--green)}
 
-  /* Tablas */
   .tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius)}
   table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:640px}
   th{background:var(--panel2);text-align:left;padding:9px 12px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim);white-space:nowrap}
@@ -110,33 +78,32 @@
   .pill.p-pen{background:rgba(224,122,106,.15);color:var(--red)}
   .dim-chip{font-family:var(--mono);font-size:12px;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:2px 7px;white-space:nowrap}
 
-  /* Formulario de items */
   .item-row{border:1px solid var(--line);border-radius:var(--radius);padding:12px;margin-bottom:10px;background:var(--panel2)}
   .item-row .row-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:13px;color:var(--ink-dim)}
   .item-calc{font-family:var(--mono);font-size:13px;margin-top:8px;color:var(--amber);display:flex;gap:18px;flex-wrap:wrap}
   .totals-bar{display:flex;gap:22px;flex-wrap:wrap;background:var(--panel2);border:1px solid var(--line);border-radius:var(--radius);padding:12px 16px;margin:12px 0}
   .totals-bar div span{display:block;font-size:11px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.07em}
   .totals-bar div b{font-family:var(--mono);font-size:16px}
+  .det-row{display:grid;grid-template-columns:2fr .7fr 1fr 1fr auto;gap:8px;margin-bottom:8px;align-items:center}
+  @media(max-width:700px){.det-row{grid-template-columns:1fr 1fr;}}
 
   .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
   .filters input,.filters select{width:auto;min-width:130px}
 
-  #toast{position:fixed;bottom:86px;left:50%;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);
-    color:var(--ink);padding:11px 18px;border-radius:10px;font-size:14px;display:none;z-index:60;max-width:90vw;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);color:var(--ink);padding:11px 18px;border-radius:10px;font-size:14px;display:none;z-index:60;max-width:90vw;box-shadow:0 8px 24px rgba(0,0,0,.4)}
   #toast.err{border-color:var(--red);color:var(--red)}
   #toast.ok{border-color:var(--green)}
-
   .empty{padding:34px;text-align:center;color:var(--ink-dim);font-size:14px}
   .muted{color:var(--ink-dim);font-size:13px}
   .sep{border:none;border-top:1px solid var(--line);margin:16px 0}
   canvas{max-width:100%}
   .chart-box{height:280px;position:relative}
-
-  @media(max-width:640px){
-    main{padding:14px 10px 90px}
-    nav.tabs{top:53px}
-    table{min-width:560px}
-  }
+  .subtabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+  .subtabs button{background:transparent;border:1px solid var(--line);color:var(--ink-dim);padding:7px 13px;border-radius:8px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit}
+  .subtabs button.active{color:var(--amber);border-color:var(--amber);background:rgba(224,169,79,.08)}
+  .subview{display:none}
+  .subview.active{display:block}
+  @media(max-width:640px){main{padding:14px 10px 60px}nav.tabs{top:53px}table{min-width:560px}}
 </style>
 </head>
 <body>
@@ -146,12 +113,9 @@
   <div class="login-card">
     <div class="brand-mark">
       <svg width="42" height="42" viewBox="0 0 42 42"><rect x="3" y="6" width="36" height="7" rx="2" fill="#e0a94f"/><rect x="3" y="17" width="36" height="7" rx="2" fill="#b9832f"/><rect x="3" y="28" width="36" height="7" rx="2" fill="#8a6224"/></svg>
-      <div>
-        <div class="t1">Gestión Bloques</div>
-        <div class="t2">Terciado · CNC</div>
-      </div>
+      <div><div class="t1">Gestión Bloques</div><div class="t2">Terciado · CNC</div></div>
     </div>
-    <p class="muted">Registro de ventas, compras y análisis de la operación.</p>
+    <p class="muted">Registro de ventas, compras, gastos y análisis de la operación.</p>
     <form id="loginForm">
       <div class="field"><label>Usuario</label><input id="loginUser" autocomplete="username" required></div>
       <div class="field"><label>Contraseña</label><input id="loginPass" type="password" autocomplete="current-password" required></div>
@@ -174,6 +138,7 @@
     <button data-view="pedidos">Pedidos</button>
     <button data-view="facturas">Facturas</button>
     <button data-view="compras">Compras</button>
+    <button data-view="gastos">Gastos</button>
     <button data-view="proveedores">Proveedores</button>
     <button data-view="precios">Precios</button>
   </nav>
@@ -186,15 +151,16 @@
         <select id="dashYear" style="width:auto"></select>
       </div>
       <div class="kpis">
-        <div class="kpi amber"><div class="lab">Ventas netas</div><div class="val num" id="kVentas">—</div></div>
-        <div class="kpi sage"><div class="lab">Compras netas</div><div class="val num" id="kCompras">—</div></div>
-        <div class="kpi green"><div class="lab">Margen</div><div class="val num" id="kMargen">—</div></div>
-        <div class="kpi"><div class="lab">m³ fabricados</div><div class="val num" id="kM3">—</div></div>
-        <div class="kpi red"><div class="lab">Por cobrar</div><div class="val num" id="kPorCobrar">—</div></div>
+        <div class="kpi amber"><div class="lab">Ventas netas</div><div class="val num" id="kVentas">—</div><div class="sub">Pedidos del año (neto)</div></div>
+        <div class="kpi sage"><div class="lab">Compras y gastos</div><div class="val num" id="kCompras">—</div><div class="sub">Compras del año (neto, incluye sueldos y arriendo pagados)</div></div>
+        <div class="kpi green"><div class="lab">Margen</div><div class="val num" id="kMargen">—</div><div class="sub">Ventas − compras y gastos</div></div>
+        <div class="kpi"><div class="lab">m³ fabricados</div><div class="val num" id="kM3">—</div><div class="sub">Volumen de pedidos del año</div></div>
+        <div class="kpi red"><div class="lab">Por cobrar</div><div class="val num" id="kPorCobrar">—</div><div class="sub">Facturas Henko emitidas y aún no pagadas (total c/IVA)</div></div>
+        <div class="kpi red"><div class="lab">Sueldos pendientes</div><div class="val num" id="kSueldosPend">—</div><div class="sub">Días trabajados sin pagar (todas las fechas)</div></div>
       </div>
       <div class="grid g2">
         <div class="card"><h3 style="font-size:14px;margin-bottom:12px">Ventas vs Compras (neto mensual)</h3><div class="chart-box"><canvas id="chVsC"></canvas></div></div>
-        <div class="card"><h3 style="font-size:14px;margin-bottom:12px">Compras por clasificación</h3><div class="chart-box"><canvas id="chClas"></canvas></div></div>
+        <div class="card"><h3 style="font-size:14px;margin-bottom:12px">Compras y gastos por clasificación</h3><div class="chart-box"><canvas id="chClas"></canvas></div></div>
       </div>
       <div class="card">
         <h3 style="font-size:14px;margin-bottom:12px">Facturas pendientes de pago</h3>
@@ -208,17 +174,17 @@
         <h2>Pedidos (ventas)</h2>
         <button class="btn" onclick="togglePedidoForm(true)">+ Nuevo pedido</button>
       </div>
-
       <div class="card" id="pedidoForm" style="display:none">
         <h3 style="margin-bottom:14px" id="pedidoFormTitulo">Registrar pedido</h3>
         <div class="grid g3">
-          <div class="field"><label>N° de pedido</label><input id="pNumero" placeholder="Ej: Pedido 23"></div>
+          <div class="field"><label>N° de pedido</label><input id="pNumero" placeholder="Ej: Pedido 33"></div>
           <div class="field"><label>Cliente</label><input id="pCliente" placeholder="Ej: Henko / Adebo"></div>
-          <div class="field"><label>Fecha</label><input id="pFecha" type="date"></div>
+          <div class="field"><label>Fecha</label><input id="pFecha" type="date" onchange="calcularTotales(true)"></div>
         </div>
         <div class="field" style="margin-top:12px"><label>Observaciones</label><input id="pObs"></div>
         <hr class="sep">
         <h3 style="font-size:14px;margin-bottom:10px">Items</h3>
+        <p class="muted" style="margin-bottom:10px">Los valores se calculan con el precio vigente a la <b>fecha del pedido</b>.</p>
         <div id="itemsContainer"></div>
         <button class="btn ghost small" onclick="addItemRow()">+ Agregar item</button>
         <div class="totals-bar">
@@ -232,7 +198,6 @@
           <button class="btn ghost" onclick="togglePedidoForm(false)">Cancelar</button>
         </div>
       </div>
-
       <div class="filters">
         <input id="fPedidoTxt" placeholder="Buscar pedido, modelo…" oninput="renderPedidos()">
         <select id="fPedidoEstado" onchange="renderPedidos()">
@@ -252,9 +217,12 @@
       <div class="card" id="facturaForm" style="display:none">
         <h3 style="margin-bottom:14px" id="fFormTitulo">Registrar factura</h3>
         <div class="grid g3">
-          <div class="field"><label>Tipo</label><select id="fTipo"><option>Adebo</option><option>Henko</option></select></div>
+          <div class="field"><label>Tipo</label><select id="fTipo" onchange="toggleAdeboAsociada()"><option>Henko</option><option>Adebo</option></select></div>
           <div class="field"><label>N° factura</label><input id="fNumero"></div>
           <div class="field"><label>Fecha emisión</label><input id="fFecha" type="date"></div>
+          <div class="field" id="fAdeboWrap"><label>Factura Adebo asociada</label>
+            <select id="fAdebo"><option value="">— Sin asociar —</option></select>
+          </div>
           <div class="field"><label>Detalle</label><input id="fDetalle" placeholder="Ej: Modelos 21229-21230"></div>
           <div class="field"><label>Pedidos asociados</label><input id="fPedidos" placeholder="Ej: Pedido 8"></div>
           <div class="field"><label>Orden de compra</label><input id="fOC"></div>
@@ -271,7 +239,7 @@
         </div>
       </div>
       <div class="filters">
-        <select id="filFacTipo" onchange="renderFacturas()"><option value="">Adebo + Henko</option><option>Adebo</option><option>Henko</option></select>
+        <select id="filFacTipo" onchange="renderFacturas()"><option value="">Henko + Adebo</option><option>Henko</option><option>Adebo</option></select>
         <select id="filFacEstado" onchange="renderFacturas()"><option value="">Todos los estados</option><option>Emitida</option><option>Pagada</option><option>Por facturar</option><option>Anulada</option></select>
       </div>
       <div id="listaFacturas"></div>
@@ -298,10 +266,17 @@
           <div class="field"><label>Neto</label><input id="cNeto" type="number" min="0" oninput="calcCompra('neto')"></div>
           <div class="field"><label>Total (con IVA)</label><input id="cTotal" type="number" min="0" oninput="calcCompra('total')"></div>
           <div class="field"><label>Forma de pago</label><select id="cPago"><option></option><option>Transferencia</option><option>Pago tarjeta</option><option>Efectivo</option><option>Crédito</option></select></div>
-          <div class="field" style="grid-column:span 2"><label>Comentario</label><input id="cComent"></div>
+          <div class="field"><label>Cuenta de pago (banco)</label><input id="cCuenta" list="dlBancos" placeholder="Ej: BancoEstado"></div>
+          <div class="field"><label>Foto boleta/factura <span class="muted">(se guarda en Drive)</span></label><input id="cFoto" type="file" accept="image/*" onchange="fotoSeleccionada()"><span class="muted" id="cFotoInfo"></span></div>
         </div>
+        <div class="field" style="margin-top:12px"><label>Comentario</label><input id="cComent"></div>
         <p class="muted" style="margin-top:8px">Ingresa el <b>neto</b> o el <b>total</b>: el otro se calcula solo con IVA 19%.</p>
-        <div style="display:flex;gap:10px;margin-top:12px">
+        <hr class="sep">
+        <h3 style="font-size:14px;margin-bottom:4px">Detalle de la factura <span class="muted">(opcional, línea a línea)</span></h3>
+        <p class="muted" style="margin-bottom:10px">Descripción · cantidad · valor unitario neto</p>
+        <div id="cDetalleContainer"></div>
+        <button class="btn ghost small" onclick="addDetalleRow()">+ Agregar línea</button>
+        <div style="display:flex;gap:10px;margin-top:14px">
           <button class="btn" id="cGuardarBtn" onclick="guardarCompra()">Guardar compra</button>
           <button class="btn ghost" onclick="cerrarCompraForm()">Cancelar</button>
         </div>
@@ -314,13 +289,116 @@
       <div id="listaCompras"></div>
     </section>
 
+    <!-- ========== GASTOS ========== -->
+    <section class="view" id="view-gastos">
+      <div class="view-head"><h2>Gastos generales</h2></div>
+      <div class="subtabs" id="gastosTabs">
+        <button data-sub="asistencia" class="active">Asistencia</button>
+        <button data-sub="sueldos">Sueldos pendientes</button>
+        <button data-sub="trabajadores">Trabajadores y cargos</button>
+        <button data-sub="arriendo">Arriendo</button>
+      </div>
+
+      <!-- Asistencia -->
+      <div class="subview active" id="sub-asistencia">
+        <div class="card">
+          <h3 style="font-size:14px;margin-bottom:12px">Registrar día trabajado</h3>
+          <div class="grid g3">
+            <div class="field"><label>Fecha</label><input id="aFecha" type="date" onchange="autoTipoDia()"></div>
+            <div class="field"><label>Trabajador</label><select id="aTrabajador" onchange="autoValorDia()"></select></div>
+            <div class="field"><label>Tipo de día</label><select id="aTipo" onchange="autoValorDia()"><option>Normal</option><option>Sábado</option><option>Domingo</option><option>Feriado</option></select></div>
+            <div class="field"><label>Hora entrada</label><input id="aEntrada" type="time" value="08:00"></div>
+            <div class="field"><label>Hora salida</label><input id="aSalida" type="time" value="18:00"></div>
+            <div class="field"><label>Valor del día <span class="muted">(auto según cargo, editable)</span></label><input id="aValor" type="number" min="0"></div>
+          </div>
+          <div class="field" style="margin-top:12px"><label>Observación</label><input id="aObs"></div>
+          <div style="display:flex;gap:10px;margin-top:12px">
+            <button class="btn" id="aGuardarBtn" onclick="guardarAsistencia()">Registrar día</button>
+            <button class="btn ghost" id="aCancelarBtn" style="display:none" onclick="cancelarEdicionAsistencia()">Cancelar edición</button>
+          </div>
+        </div>
+        <div class="filters">
+          <select id="filAsiTrab" onchange="renderAsistencia()"><option value="">Todos los trabajadores</option></select>
+          <select id="filAsiMes" onchange="renderAsistencia()"><option value="">Todos los meses</option></select>
+          <select id="filAsiPag" onchange="renderAsistencia()"><option value="">Pagados y pendientes</option><option value="NO">Solo pendientes</option><option value="SI">Solo pagados</option></select>
+        </div>
+        <div id="listaAsistencia"></div>
+      </div>
+
+      <!-- Sueldos -->
+      <div class="subview" id="sub-sueldos">
+        <div class="card">
+          <h3 style="font-size:14px;margin-bottom:6px">Sueldos pendientes de pago</h3>
+          <p class="muted" style="margin-bottom:14px">Suma de los días trabajados y no pagados de cada trabajador. Al marcar como pagado, se genera automáticamente el gasto (compra clasificación "Sueldos") y aparece en el dashboard.</p>
+          <div id="listaSueldos"></div>
+        </div>
+      </div>
+
+      <!-- Trabajadores y cargos -->
+      <div class="subview" id="sub-trabajadores">
+        <div class="grid g2">
+          <div class="card">
+            <h3 style="font-size:14px;margin-bottom:12px" id="tFormTitulo">Nuevo trabajador</h3>
+            <div class="grid g2">
+              <div class="field"><label>Nombre</label><input id="tNombre"></div>
+              <div class="field"><label>RUT</label><input id="tRut"></div>
+              <div class="field"><label>Cargo</label><select id="tCargo"></select></div>
+              <div class="field"><label>Activo</label><select id="tActivo"><option>SI</option><option>NO</option></select></div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:12px">
+              <button class="btn small" id="tGuardarBtn" onclick="guardarTrabajador()">Guardar trabajador</button>
+              <button class="btn ghost small" id="tCancelarBtn" style="display:none" onclick="resetTrabajadorForm()">Cancelar</button>
+            </div>
+            <hr class="sep">
+            <div id="listaTrabajadores"></div>
+          </div>
+          <div class="card">
+            <h3 style="font-size:14px;margin-bottom:12px" id="cgFormTitulo">Nuevo cargo</h3>
+            <div class="grid g2">
+              <div class="field"><label>Nombre del cargo</label><input id="cgNombre" placeholder="Ej: Maestro carpintero"></div>
+              <div class="field"><label>Valor día normal</label><input id="cgNormal" type="number" min="0"></div>
+              <div class="field"><label>Valor sábado</label><input id="cgSabado" type="number" min="0"></div>
+              <div class="field"><label>Valor domingo</label><input id="cgDomingo" type="number" min="0"></div>
+              <div class="field"><label>Valor feriado</label><input id="cgFeriado" type="number" min="0"></div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:12px">
+              <button class="btn small" id="cgGuardarBtn" onclick="guardarCargo()">Guardar cargo</button>
+              <button class="btn ghost small" id="cgCancelarBtn" style="display:none" onclick="resetCargoForm()">Cancelar</button>
+            </div>
+            <hr class="sep">
+            <div id="listaCargos"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Arriendo -->
+      <div class="subview" id="sub-arriendo">
+        <div class="card">
+          <h3 style="font-size:14px;margin-bottom:6px">Registrar pago de arriendo de bodega</h3>
+          <p class="muted" style="margin-bottom:14px">Se guarda como compra con clasificación "Arriendo" — puedes editarla o eliminarla desde la pestaña Compras, y se descuenta en el dashboard.</p>
+          <div class="grid g3">
+            <div class="field"><label>Fecha de pago</label><input id="arFecha" type="date"></div>
+            <div class="field"><label>Monto</label><input id="arMonto" type="number" min="0"></div>
+            <div class="field"><label>Cuenta de pago (banco)</label><input id="arCuenta" list="dlBancos"></div>
+          </div>
+          <div class="field" style="margin-top:12px"><label>Comentario</label><input id="arComent" placeholder="Ej: Arriendo bodega julio"></div>
+          <button class="btn" style="margin-top:12px" onclick="guardarArriendo()">Registrar arriendo</button>
+        </div>
+        <div class="card">
+          <h3 style="font-size:14px;margin-bottom:12px">Historial de arriendos</h3>
+          <div id="listaArriendos"></div>
+        </div>
+      </div>
+    </section>
+
     <!-- ========== PROVEEDORES ========== -->
     <section class="view" id="view-proveedores">
       <div class="view-head">
         <h2>Proveedores</h2>
-        <button class="btn" onclick="toggleEl('provForm')">+ Nuevo proveedor</button>
+        <button class="btn" onclick="abrirProvForm()">+ Nuevo proveedor</button>
       </div>
       <div class="card" id="provForm" style="display:none">
+        <h3 style="margin-bottom:14px" id="prFormTitulo">Registrar proveedor</h3>
         <div class="grid g3">
           <div class="field"><label>Empresa</label><input id="prEmpresa"></div>
           <div class="field"><label>RUT</label><input id="prRut"></div>
@@ -330,8 +408,8 @@
           <div class="field"><label>Contacto / Mail</label><input id="prContacto"></div>
         </div>
         <div style="display:flex;gap:10px;margin-top:14px">
-          <button class="btn" onclick="guardarProveedor()">Guardar proveedor</button>
-          <button class="btn ghost" onclick="toggleEl('provForm')">Cancelar</button>
+          <button class="btn" id="prGuardarBtn" onclick="guardarProveedor()">Guardar proveedor</button>
+          <button class="btn ghost" onclick="cerrarProvForm()">Cancelar</button>
         </div>
       </div>
       <div id="listaProveedores"></div>
@@ -339,18 +417,19 @@
 
     <!-- ========== PRECIOS ========== -->
     <section class="view" id="view-precios">
-      <div class="view-head"><h2>Precios vigentes</h2></div>
+      <div class="view-head"><h2>Precios por tramos</h2></div>
       <div class="card">
-        <p class="muted" style="margin-bottom:14px">Estos valores netos se usan para calcular automáticamente los pedidos. Cada cambio queda en el historial.</p>
+        <p class="muted" style="margin-bottom:14px">Cada precio rige <b>desde su fecha de vigencia</b> hasta que se registre uno nuevo. Los pedidos se calculan con el precio vigente a la fecha del pedido — así los pedidos antiguos mantienen sus valores.</p>
         <div class="grid g3">
-          <div class="field"><label>Valor m³ (cubos a medida)</label><input id="cfgM3" type="number" min="0"></div>
+          <div class="field"><label>Valor m³ terciado mueblista (cubos)</label><input id="cfgM3" type="number" min="0"></div>
           <div class="field"><label>Bloque estándar 55 mm (1200×2400)</label><input id="cfgB55" type="number" min="0"></div>
           <div class="field"><label>Bloque estándar 100 mm (1200×2400)</label><input id="cfgB100" type="number" min="0"></div>
+          <div class="field"><label>Vigente desde</label><input id="cfgDesde" type="date"></div>
         </div>
-        <button class="btn" style="margin-top:14px" onclick="guardarPrecios()" id="btnPrecios">Actualizar precios</button>
+        <button class="btn" style="margin-top:14px" onclick="guardarPrecios()" id="btnPrecios">Registrar nuevo tramo de precios</button>
       </div>
       <div class="card">
-        <h3 style="font-size:14px;margin-bottom:12px">Historial de precios</h3>
+        <h3 style="font-size:14px;margin-bottom:12px">Historial de tramos</h3>
         <div id="histPrecios"></div>
       </div>
     </section>
@@ -358,18 +437,25 @@
 
   <datalist id="dlProveedores"></datalist>
   <datalist id="dlPedidos"></datalist>
+  <datalist id="dlBancos">
+    <option value="BancoEstado"><option value="Banco de Chile"><option value="Banco Santander">
+    <option value="BCI"><option value="Scotiabank"><option value="Itaú"><option value="Banco Falabella">
+    <option value="Mercado Pago"><option value="Cuenta RUT"><option value="Efectivo">
+  </datalist>
 </div>
 
 <div id="toast"></div>
 
 <script>
 /* ================================================================
-   CONFIGURACIÓN — pega aquí la URL /exec de tu Apps Script
+   CONFIGURACIÓN
 ================================================================ */
 const API_URL = 'https://script.google.com/macros/s/AKfycbxrpItwf_lq-cEs4oo6hHSo7IMMRxy9VaSWIAHYY3ToCqObCyo2aPxMoBxntHGik5xl/exec';
 
 const IVA = 0.19;
-let S = { token:null, nombre:'', rol:'', usuario:'', data:null, charts:{} };
+let S = { token:null, nombre:'', rol:'', usuario:'', data:null, charts:{},
+          editPedidoId:null, editFacturaId:null, editCompraId:null, editProvId:null,
+          editTrabId:null, editCargoId:null, editAsiId:null, fotoBase64:null };
 
 /* ================= UTILIDADES ================= */
 const $ = id => document.getElementById(id);
@@ -377,13 +463,13 @@ const CLP = n => '$' + Math.round(n||0).toLocaleString('es-CL');
 const M3 = n => (n||0).toLocaleString('es-CL',{minimumFractionDigits:3,maximumFractionDigits:3}) + ' m³';
 const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const hoyISO = () => new Date().toISOString().slice(0,10);
+function esc(s){ return String(s??'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
 function toast(msg, tipo){
   const t = $('toast');
   t.textContent = msg; t.className = tipo||''; t.style.display='block';
-  clearTimeout(t._h); t._h = setTimeout(()=>t.style.display='none', 3500);
+  clearTimeout(t._h); t._h = setTimeout(()=>t.style.display='none', 3800);
 }
-function toggleEl(id){ const e=$(id); e.style.display = e.style.display==='none'?'block':'none'; }
 
 async function sha256(txt){
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(txt));
@@ -398,11 +484,17 @@ async function api(payload){
   return data;
 }
 
-/* Precio vigente: última fila de Config por clave según FechaVigencia */
-function precio(clave){
-  const rows = (S.data.config||[]).filter(r=>r.Clave===clave);
-  if(!rows.length) return 0;
-  rows.sort((a,b)=> String(a.FechaVigencia).localeCompare(String(b.FechaVigencia)));
+/* Precio vigente a una fecha dada (tramos) */
+function precioVigente(clave, fecha){
+  const f = fecha || hoyISO();
+  const rows = (S.data.config||[]).filter(r=>r.Clave===clave && String(r.FechaVigencia).slice(0,10) <= f);
+  if(!rows.length){
+    const todas = (S.data.config||[]).filter(r=>r.Clave===clave);
+    if(!todas.length) return 0;
+    todas.sort((a,b)=>String(a.FechaVigencia).localeCompare(String(b.FechaVigencia)));
+    return Number(todas[0].Valor)||0; // si el pedido es anterior al primer tramo, usa el más antiguo
+  }
+  rows.sort((a,b)=>String(a.FechaVigencia).localeCompare(String(b.FechaVigencia)));
   return Number(rows[rows.length-1].Valor)||0;
 }
 
@@ -411,7 +503,6 @@ $('loginForm').addEventListener('submit', async ev=>{
   ev.preventDefault();
   const btn = $('loginBtn'); btn.disabled = true; $('loginError').textContent='';
   try{
-    if(API_URL.startsWith('PEGAR')) throw new Error('Falta configurar API_URL en index.html');
     const hash = await sha256($('loginPass').value);
     const r = await api({ action:'login', usuario:$('loginUser').value.trim(), hash });
     S.token=r.token; S.nombre=r.nombre; S.rol=r.rol; S.usuario=r.usuario;
@@ -446,11 +537,10 @@ async function cargarDatos(){
   }
 }
 
-/* Reintentar sesión guardada */
 (async function init(){
   const raw = localStorage.getItem('gb_session');
   if(raw){
-    try{ Object.assign(S, JSON.parse(raw)); await entrar(); return; }
+    try{ Object.assign(S, JSON.parse(raw)); await entrar(); }
     catch(e){ localStorage.removeItem('gb_session'); location.reload(); }
   }
 })();
@@ -463,6 +553,12 @@ $('tabs').addEventListener('click', ev=>{
   $('view-'+b.dataset.view).classList.add('active');
   if(b.dataset.view==='dashboard') renderDashboard();
 });
+$('gastosTabs').addEventListener('click', ev=>{
+  const b = ev.target.closest('button'); if(!b) return;
+  document.querySelectorAll('#gastosTabs button').forEach(x=>x.classList.toggle('active', x===b));
+  document.querySelectorAll('#view-gastos .subview').forEach(v=>v.classList.remove('active'));
+  $('sub-'+b.dataset.sub).classList.add('active');
+});
 
 function renderTodo(){
   llenarDatalists();
@@ -473,12 +569,30 @@ function renderTodo(){
   renderCompras();
   renderProveedores();
   renderPrecios();
+  renderTrabajadores();
+  renderCargos();
+  renderAsistencia();
+  renderSueldos();
+  renderArriendos();
 }
 
 function llenarDatalists(){
   $('dlProveedores').innerHTML = (S.data.proveedores||[]).map(p=>`<option value="${esc(p.Empresa)}">`).join('');
   $('dlPedidos').innerHTML = '<option value="General"><option value="Funcionamiento"><option value="Equipamiento">' +
     (S.data.pedidos||[]).map(p=>`<option value="${esc(p.Numero)}">`).join('');
+  // Facturas Adebo para asociar
+  const adebo = (S.data.facturas||[]).filter(f=>f.Tipo==='Adebo')
+    .sort((a,b)=>String(b.Fecha).localeCompare(String(a.Fecha)));
+  $('fAdebo').innerHTML = '<option value="">— Sin asociar —</option>' +
+    adebo.map(f=>`<option value="${esc(f.Numero)}">Adebo ${esc(f.Numero)} · ${esc(String(f.Detalle).slice(0,30))} · ${CLP(f.Total)}</option>`).join('');
+  // Trabajadores activos
+  const trabs = (S.data.trabajadores||[]).filter(t=>String(t.Activo).toUpperCase()!=='NO');
+  $('aTrabajador').innerHTML = trabs.map(t=>`<option value="${t.ID}">${esc(t.Nombre)}</option>`).join('');
+  $('filAsiTrab').innerHTML = '<option value="">Todos los trabajadores</option>' +
+    (S.data.trabajadores||[]).map(t=>`<option value="${esc(t.Nombre)}">${esc(t.Nombre)}</option>`).join('');
+  // Cargos para el form trabajador
+  $('tCargo').innerHTML = '<option value="">— Sin cargo —</option>' +
+    (S.data.cargos||[]).map(c=>`<option value="${c.ID}">${esc(c.Nombre)}</option>`).join('');
 }
 
 function llenarFiltros(){
@@ -489,14 +603,12 @@ function llenarFiltros(){
   if(cur && [...years].includes(cur)) sel.value = cur;
   sel.onchange = renderDashboard;
 
-  const meses = new Set((S.data.compras||[]).map(c=>String(c.Fecha).slice(0,7)).filter(m=>m.length===7));
-  $('filComMes').innerHTML = '<option value="">Todos los meses</option>' +
-    [...meses].sort().reverse().map(m=>{
-      const [y,mm]=m.split('-'); return `<option value="${m}">${MESES[+mm-1]} ${y}</option>`;
-    }).join('');
+  const mesesOpt = arr => '<option value="">Todos los meses</option>' +
+    [...new Set(arr.map(x=>String(x.Fecha).slice(0,7)).filter(m=>m.length===7))].sort().reverse()
+      .map(m=>{const [y,mm]=m.split('-');return `<option value="${m}">${MESES[+mm-1]} ${y}</option>`;}).join('');
+  $('filComMes').innerHTML = mesesOpt(S.data.compras||[]);
+  $('filAsiMes').innerHTML = mesesOpt(S.data.asistencia||[]);
 }
-
-function esc(s){ return String(s??'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
 /* ================= DASHBOARD ================= */
 function renderDashboard(){
@@ -508,9 +620,13 @@ function renderDashboard(){
   const ventas = peds.reduce((a,p)=>a+Number(p.TotalNeto||0),0);
   const compras = coms.reduce((a,c)=>a+Number(c.Neto||0),0);
   const m3 = peds.reduce((a,p)=>a+Number(p.TotalM3||0),0);
+  // POR COBRAR = facturas HENKO (las que emite el cliente) no pagadas ni anuladas
   const porCobrar = (S.data.facturas||[])
-    .filter(f=>f.Tipo==='Adebo' && !/pagad|anulad/i.test(String(f.Estado)))
+    .filter(f=>f.Tipo==='Henko' && !/pagad|anulad/i.test(String(f.Estado)))
     .reduce((a,f)=>a+Number(f.Total||0),0);
+  const sueldosPend = (S.data.asistencia||[])
+    .filter(a=>String(a.Pagado).toUpperCase()!=='SI')
+    .reduce((s,a)=>s+Number(a.ValorDia||0),0);
 
   $('kVentas').textContent = CLP(ventas);
   $('kCompras').textContent = CLP(compras);
@@ -518,8 +634,8 @@ function renderDashboard(){
   $('kMargen').style.color = ventas-compras>=0 ? 'var(--green)':'var(--red)';
   $('kM3').textContent = M3(m3);
   $('kPorCobrar').textContent = CLP(porCobrar);
+  $('kSueldosPend').textContent = CLP(sueldosPend);
 
-  // Gráfico ventas vs compras
   const vMes = Array(12).fill(0), cMes = Array(12).fill(0);
   peds.forEach(p=>{ const m=+String(p.Fecha).slice(5,7)-1; if(m>=0) vMes[m]+=Number(p.TotalNeto||0); });
   coms.forEach(c=>{ const m=+String(c.Fecha).slice(5,7)-1; if(m>=0) cMes[m]+=Number(c.Neto||0); });
@@ -527,11 +643,10 @@ function renderDashboard(){
     labels:MESES,
     datasets:[
       {label:'Ventas',data:vMes,backgroundColor:'#e0a94f',borderRadius:4},
-      {label:'Compras',data:cMes,backgroundColor:'#8fb8a8',borderRadius:4}
+      {label:'Compras y gastos',data:cMes,backgroundColor:'#8fb8a8',borderRadius:4}
     ]
   });
 
-  // Compras por clasificación
   const porClas = {};
   coms.forEach(c=>{ const k=c.Clasificacion||'Otro'; porClas[k]=(porClas[k]||0)+Number(c.Neto||0); });
   chart('chClas','doughnut',{
@@ -539,7 +654,6 @@ function renderDashboard(){
     datasets:[{data:Object.values(porClas),backgroundColor:['#e0a94f','#8fb8a8','#e07a6a','#7d97b8','#b9832f','#8fca8f','#9aa4ac'],borderWidth:0}]
   });
 
-  // Pendientes
   const pend = (S.data.facturas||[]).filter(f=>!/pagad|anulad/i.test(String(f.Estado)));
   $('dashPendientes').innerHTML = pend.length ? tabla(
     ['Tipo','N°','Fecha','Detalle','Total','Estado'],
@@ -583,7 +697,7 @@ function togglePedidoForm(show){
 function editarPedido(id){
   const p = (S.data.pedidos||[]).find(x=>String(x.ID)===String(id));
   if(!p) return toast('Pedido no encontrado','err');
-  S.editPedidoId = null; // evitar reset de togglePedidoForm
+  S.editPedidoId = null;
   $('pedidoForm').style.display = 'block';
   $('pedidoFormTitulo').textContent = 'Editar ' + p.Numero;
   $('pGuardarBtn').textContent = 'Guardar cambios';
@@ -620,7 +734,6 @@ function addItemRow(pref){
     </div>
     <div class="item-calc"><span class="it-vol">Vol: —</span><span class="it-tot">Total: —</span></div>`;
   $('itemsContainer').appendChild(div);
-  // Bloque estándar: autocompletar 1200x2400
   div.querySelector('.it-forma').addEventListener('change', ev=>{
     if(ev.target.value==='Bloque'){
       div.querySelector('.it-anc').value = 1200;
@@ -637,7 +750,7 @@ function addItemRow(pref){
     div.querySelector('.it-lar').value = pref.largo||'';
     const vu = div.querySelector('.it-vu');
     vu.value = Math.round(pref.valorUnitario||0);
-    vu.dataset.manual = '1'; // respeta el valor histórico guardado
+    vu.dataset.manual = '1';
     calcItem(vu);
   }
 }
@@ -647,14 +760,15 @@ function leerItem(row){
   const cant = +g('.it-cant').value||0, esp=+g('.it-esp').value||0, anc=+g('.it-anc').value||0, lar=+g('.it-lar').value||0;
   const volU = esp*anc*lar/1e9;
   const forma = g('.it-forma').value;
+  const fechaPedido = $('pFecha').value || hoyISO();
   let vu;
   const vuInput = g('.it-vu');
   if(vuInput.dataset.manual==='1' && vuInput.value!==''){
     vu = +vuInput.value;
   }else{
-    if(forma==='Bloque' && esp===55) vu = precio('PRECIO_BLOQUE_55');
-    else if(forma==='Bloque' && esp===100) vu = precio('PRECIO_BLOQUE_100');
-    else vu = volU * precio('PRECIO_M3');
+    if(forma==='Bloque' && esp===55) vu = precioVigente('PRECIO_BLOQUE_55', fechaPedido);
+    else if(forma==='Bloque' && esp===100) vu = precioVigente('PRECIO_BLOQUE_100', fechaPedido);
+    else vu = volU * precioVigente('PRECIO_M3', fechaPedido);
     vuInput.value = Math.round(vu);
   }
   return { modelo:g('.it-modelo').value.trim(), forma, cantidad:cant, espesor:esp, ancho:anc, largo:lar,
@@ -669,9 +783,13 @@ function calcItem(el){
   calcularTotales();
 }
 
-function calcularTotales(){
+function calcularTotales(recalcAuto){
   let m3=0, neto=0;
   document.querySelectorAll('#itemsContainer .item-row').forEach(r=>{
+    if(recalcAuto){
+      const vu = r.querySelector('.it-vu');
+      if(vu.dataset.manual!=='1') vu.value=''; // fuerza recálculo con la nueva fecha
+    }
     const it = leerItem(r); m3+=it.volTotal; neto+=it.valorTotal;
   });
   $('tM3').textContent = M3(m3);
@@ -737,8 +855,8 @@ function renderPedidos(){
       <td class="r num">${CLP(i.ValorTotal)}</td></tr>`).join('');
     return `<div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-        <div><b>${esc(p.Numero)}</b> <span class="muted">· ${esc(p.Cliente)||''} · ${p.Fecha}</span></div>
-        <div style="display:flex;gap:8px;align-items:center">
+        <div><b>${esc(p.Numero)}</b> <span class="muted">· ${esc(p.Cliente)||''} · ${p.Fecha||'sin fecha'}</span></div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           ${pillEstado(p.Estado)}
           <button class="btn ghost small" onclick="editarPedido('${p.ID}')">Editar</button>
           ${S.rol==='admin'?`<button class="btn danger small" onclick="eliminarRegistro('Pedidos','${p.ID}','el ${esc(p.Numero)} y todos sus items')">Eliminar</button>`:''}
@@ -758,7 +876,7 @@ function renderPedidos(){
         <div><span>Total c/IVA</span><b class="num" style="color:var(--amber)">${CLP(p.Total)}</b></div>
       </div>
     </div>`;
-  }).join('') : '<div class="empty">No hay pedidos registrados todavía. Crea el primero con “+ Nuevo pedido”.</div>';
+  }).join('') : '<div class="empty">No hay pedidos con ese filtro.</div>';
 }
 
 async function cambiarEstadoPedido(id, estado){
@@ -771,6 +889,10 @@ async function cambiarEstadoPedido(id, estado){
 }
 
 /* ================= FACTURAS ================= */
+function toggleAdeboAsociada(){
+  $('fAdeboWrap').style.display = $('fTipo').value==='Henko' ? 'block':'none';
+}
+
 function calcFactura(origen){
   const neto = +$('fNeto').value||0, total = +$('fTotal').value||0;
   if(origen==='neto'){ $('fIva').value = Math.round(neto*IVA); $('fTotal').value = Math.round(neto*(1+IVA)); }
@@ -779,7 +901,8 @@ function calcFactura(origen){
 
 function limpiarFacturaForm(){
   ['fNumero','fDetalle','fPedidos','fOC','fNeto','fIva','fTotal','fObs'].forEach(i=>$(i).value='');
-  $('fFactoring').value='0'; $('fEstado').value='Emitida'; $('fTipo').value='Adebo';
+  $('fFactoring').value='0'; $('fEstado').value='Emitida'; $('fTipo').value='Henko'; $('fAdebo').value='';
+  toggleAdeboAsociada();
 }
 
 function abrirFacturaForm(){
@@ -801,13 +924,15 @@ function editarFactura(id){
   if(!f) return toast('Factura no encontrada','err');
   $('fFormTitulo').textContent = 'Editar factura ' + f.Numero + ' (' + f.Tipo + ')';
   $('fGuardarBtn').textContent = 'Guardar cambios';
-  $('fTipo').value = f.Tipo||'Adebo'; $('fNumero').value = f.Numero||'';
+  $('fTipo').value = f.Tipo||'Henko'; $('fNumero').value = f.Numero||'';
   $('fFecha').value = String(f.Fecha||'').slice(0,10);
   $('fDetalle').value = f.Detalle||''; $('fPedidos').value = f.Pedidos||'';
   $('fOC').value = f.OrdenCompra||'';
   $('fNeto').value = f.Neto||''; $('fIva').value = f.IVA||''; $('fTotal').value = f.Total||'';
   $('fEstado').value = f.Estado||'Emitida';
   $('fFactoring').value = f.DescuentoFactoring||0; $('fObs').value = f.Observaciones||'';
+  $('fAdebo').value = f.FacturaAdebo||'';
+  toggleAdeboAsociada();
   S.editFacturaId = id;
   $('facturaForm').style.display = 'block';
   $('facturaForm').scrollIntoView({behavior:'smooth'});
@@ -821,7 +946,8 @@ async function guardarFactura(){
       tipo:$('fTipo').value, numero:$('fNumero').value.trim(), fecha:$('fFecha').value||hoyISO(),
       detalle:$('fDetalle').value.trim(), pedidos:$('fPedidos').value.trim(), ordenCompra:$('fOC').value.trim(),
       neto:+$('fNeto').value||0, iva:+$('fIva').value||0, total:+$('fTotal').value||0,
-      estado:$('fEstado').value, descuentoFactoring:+$('fFactoring').value||0, observaciones:$('fObs').value.trim()
+      estado:$('fEstado').value, descuentoFactoring:+$('fFactoring').value||0, observaciones:$('fObs').value.trim(),
+      facturaAdebo: $('fTipo').value==='Henko' ? $('fAdebo').value : ''
     };
     if(editando){
       await api({ action:'updateFactura', id:editando, factura });
@@ -843,11 +969,12 @@ function renderFacturas(){
   if(tipo) fs = fs.filter(f=>f.Tipo===tipo);
   if(est) fs = fs.filter(f=>f.Estado===est);
   $('listaFacturas').innerHTML = fs.length ? tabla(
-    ['Tipo','N°','Fecha','Detalle','Pedidos','Neto','IVA','Total','Estado',''],
+    ['Tipo','N°','Fecha','Detalle','Fact. Adebo','Pedidos','Neto','Total','Estado',''],
     fs.map(f=>[
-      f.Tipo, f.Numero, f.Fecha, esc(f.Detalle), esc(f.Pedidos),
+      f.Tipo, f.Numero, f.Fecha, esc(f.Detalle),
+      f.Tipo==='Henko' ? esc(f.FacturaAdebo||'—') : '·',
+      esc(f.Pedidos),
       {html:`<span class="num">${CLP(f.Neto)}</span>`,cls:'r'},
-      {html:`<span class="num">${CLP(f.IVA)}</span>`,cls:'r'},
       {html:`<span class="num"><b>${CLP(f.Total)}</b></span>`,cls:'r'},
       {html:pillEstado(f.Estado)},
       {html: `<div style="display:flex;gap:6px"><button class="btn ghost small" onclick="editarFactura('${f.ID}')">Editar</button>` +
@@ -877,9 +1004,64 @@ function autoRut(){
   if(p) $('cRut').value = p.RUT||'';
 }
 
+function addDetalleRow(pref){
+  const div = document.createElement('div');
+  div.className='det-row';
+  div.innerHTML = `
+    <input class="dl-desc" placeholder="Descripción">
+    <input class="dl-cant" type="number" min="0" step="any" placeholder="Cant.">
+    <input class="dl-vu" type="number" min="0" placeholder="V. unitario" oninput="calcDetalle(this)">
+    <input class="dl-vt" type="number" min="0" placeholder="V. total" readonly style="opacity:.8">
+    <button class="btn danger small" onclick="this.closest('.det-row').remove()">×</button>`;
+  div.querySelector('.dl-cant').addEventListener('input', ev=>calcDetalle(ev.target));
+  $('cDetalleContainer').appendChild(div);
+  if(pref){
+    div.querySelector('.dl-desc').value = pref.Descripcion||'';
+    div.querySelector('.dl-cant').value = pref.Cantidad||'';
+    div.querySelector('.dl-vu').value = pref.ValorUnitario||'';
+    div.querySelector('.dl-vt').value = pref.ValorTotal||'';
+  }
+}
+function calcDetalle(el){
+  const row = el.closest('.det-row');
+  const c = +row.querySelector('.dl-cant').value||0, v = +row.querySelector('.dl-vu').value||0;
+  row.querySelector('.dl-vt').value = Math.round(c*v);
+}
+function leerDetalle(){
+  return [...document.querySelectorAll('#cDetalleContainer .det-row')].map(r=>({
+    descripcion: r.querySelector('.dl-desc').value.trim(),
+    cantidad: +r.querySelector('.dl-cant').value||0,
+    valorUnitario: +r.querySelector('.dl-vu').value||0,
+    valorTotal: +r.querySelector('.dl-vt').value||0
+  })).filter(l=>l.descripcion);
+}
+
+function fotoSeleccionada(){
+  const file = $('cFoto').files[0];
+  S.fotoBase64 = null;
+  $('cFotoInfo').textContent = '';
+  if(!file) return;
+  const img = new Image();
+  const reader = new FileReader();
+  reader.onload = e => { img.src = e.target.result; };
+  img.onload = () => {
+    // Comprimir a máx 1400px lado mayor, JPEG 0.75
+    const max = 1400;
+    const esc = Math.min(1, max/Math.max(img.width, img.height));
+    const cv = document.createElement('canvas');
+    cv.width = Math.round(img.width*esc); cv.height = Math.round(img.height*esc);
+    cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+    S.fotoBase64 = cv.toDataURL('image/jpeg',0.75);
+    $('cFotoInfo').textContent = `✔ Foto lista (${Math.round(S.fotoBase64.length*0.75/1024)} KB)`;
+  };
+  reader.readAsDataURL(file);
+}
+
 function limpiarCompraForm(){
-  ['cProv','cRut','cNumDoc','cNeto','cTotal','cComent','cAsig'].forEach(i=>$(i).value='');
+  ['cProv','cRut','cNumDoc','cNeto','cTotal','cComent','cAsig','cCuenta'].forEach(i=>$(i).value='');
   $('cClas').value='Material'; $('cDoc').value='Factura'; $('cPago').value='';
+  $('cFoto').value=''; $('cFotoInfo').textContent=''; S.fotoBase64=null;
+  $('cDetalleContainer').innerHTML='';
 }
 
 function abrirCompraForm(){
@@ -899,6 +1081,7 @@ function cerrarCompraForm(){
 function editarCompra(id){
   const c = (S.data.compras||[]).find(x=>String(x.ID)===String(id));
   if(!c) return toast('Compra no encontrada','err');
+  limpiarCompraForm();
   $('cFormTitulo').textContent = 'Editar compra · ' + (c.Proveedor||'');
   $('cGuardarBtn').textContent = 'Guardar cambios';
   $('cFecha').value = String(c.Fecha||'').slice(0,10);
@@ -908,6 +1091,10 @@ function editarCompra(id){
   $('cDoc').value = c.Documento||'Factura'; $('cNumDoc').value = c.NumDocumento||'';
   $('cNeto').value = c.Neto||''; $('cTotal').value = c.Total||'';
   $('cPago').value = c.FormaPago||''; $('cComent').value = c.Comentario||'';
+  $('cCuenta').value = c.CuentaPago||'';
+  if(c.Comprobante) $('cFotoInfo').textContent = 'Ya tiene comprobante (sube otro para reemplazar)';
+  (S.data.comprasDetalle||[]).filter(d=>String(d.CompraID)===String(id))
+    .sort((a,b)=>a.Linea-b.Linea).forEach(d=>addDetalleRow(d));
   S.editCompraId = id;
   $('compraForm').style.display = 'block';
   $('compraForm').scrollIntoView({behavior:'smooth'});
@@ -918,13 +1105,17 @@ async function guardarCompra(){
   const neto=+$('cNeto').value||0;
   if(!neto) return toast('Ingresa el neto o el total de la compra','err');
   const editando = S.editCompraId;
+  const btn = $('cGuardarBtn'); btn.disabled = true;
   try{
     const compra = {
       fecha:$('cFecha').value||hoyISO(), clasificacion:$('cClas').value, asignacion:$('cAsig').value.trim()||'General',
       proveedor:$('cProv').value.trim(), rut:$('cRut').value.trim(),
       documento:$('cDoc').value, numDocumento:$('cNumDoc').value.trim(),
       neto, iva:Math.round(neto*IVA), total:+$('cTotal').value||Math.round(neto*(1+IVA)),
-      formaPago:$('cPago').value, comentario:$('cComent').value.trim()
+      formaPago:$('cPago').value, comentario:$('cComent').value.trim(),
+      cuentaPago:$('cCuenta').value.trim(),
+      comprobanteBase64: S.fotoBase64,
+      detalle: leerDetalle()
     };
     if(editando){
       await api({ action:'updateCompra', id:editando, compra });
@@ -937,6 +1128,7 @@ async function guardarCompra(){
     limpiarCompraForm();
     await cargarDatos();
   }catch(e){ toast(e.message,'err'); }
+  btn.disabled = false;
 }
 
 function renderCompras(){
@@ -945,33 +1137,317 @@ function renderCompras(){
   let cs = (S.data.compras||[]).slice().sort((a,b)=>String(b.Fecha).localeCompare(String(a.Fecha)));
   if(clas) cs = cs.filter(c=>c.Clasificacion===clas);
   if(mes) cs = cs.filter(c=>String(c.Fecha).startsWith(mes));
-  if(txt) cs = cs.filter(c=>(c.Proveedor+' '+c.Comentario+' '+c.Asignacion).toLowerCase().includes(txt));
+  if(txt) cs = cs.filter(c=>(c.Proveedor+' '+c.Comentario+' '+c.Asignacion+' '+(c.CuentaPago||'')).toLowerCase().includes(txt));
   const totalNeto = cs.reduce((a,c)=>a+Number(c.Neto||0),0);
+  const nDet = {};
+  (S.data.comprasDetalle||[]).forEach(d=>{ nDet[d.CompraID]=(nDet[d.CompraID]||0)+1; });
   $('listaCompras').innerHTML = (cs.length ?
     `<p class="muted" style="margin-bottom:8px">${cs.length} compras · neto ${CLP(totalNeto)}</p>` + tabla(
-    ['Fecha','Clasificación','Asignación','Proveedor','Doc.','N° doc','Neto','Total','Pago',''],
+    ['Fecha','Clasificación','Asignación','Proveedor','Doc.','Neto','Total','Cuenta','',''],
     cs.map(c=>[
       c.Fecha, c.Clasificacion, esc(c.Asignacion), esc(c.Proveedor),
-      c.Documento, c.NumDocumento,
+      (c.Documento||'') + (c.NumDocumento?' '+esc(c.NumDocumento):''),
       {html:`<span class="num">${CLP(c.Neto)}</span>`,cls:'r'},
       {html:`<span class="num"><b>${CLP(c.Total)}</b></span>`,cls:'r'},
-      c.FormaPago||'',
+      esc(c.CuentaPago||''),
+      {html:(c.Comprobante?`<a href="${esc(c.Comprobante)}" target="_blank" title="Ver comprobante">📎</a> `:'')+(nDet[c.ID]?`<span class="muted" title="líneas de detalle">${nDet[c.ID]} lín.</span>`:'')},
       {html:`<div style="display:flex;gap:6px"><button class="btn ghost small" onclick="editarCompra('${c.ID}')">Editar</button>${S.rol==='admin'?`<button class="btn danger small" onclick="eliminarRegistro('Compras','${c.ID}','la compra a ${esc(c.Proveedor)} del ${c.Fecha}')">Eliminar</button>`:''}</div>`}
     ])
   ) : '<div class="empty">Sin compras con ese filtro.</div>');
 }
 
+/* ================= GASTOS: TRABAJADORES ================= */
+function resetTrabajadorForm(){
+  S.editTrabId = null;
+  $('tFormTitulo').textContent = 'Nuevo trabajador';
+  $('tGuardarBtn').textContent = 'Guardar trabajador';
+  $('tCancelarBtn').style.display = 'none';
+  ['tNombre','tRut'].forEach(i=>$(i).value='');
+  $('tCargo').value=''; $('tActivo').value='SI';
+}
+
+function editarTrabajador(id){
+  const t = (S.data.trabajadores||[]).find(x=>String(x.ID)===String(id));
+  if(!t) return;
+  S.editTrabId = id;
+  $('tFormTitulo').textContent = 'Editar: ' + t.Nombre;
+  $('tGuardarBtn').textContent = 'Guardar cambios';
+  $('tCancelarBtn').style.display = 'inline-block';
+  $('tNombre').value = t.Nombre||''; $('tRut').value = t.RUT||'';
+  $('tCargo').value = t.CargoID||''; $('tActivo').value = String(t.Activo).toUpperCase()==='NO'?'NO':'SI';
+}
+
+async function guardarTrabajador(){
+  if(!$('tNombre').value.trim()) return toast('Falta el nombre','err');
+  const cargoSel = (S.data.cargos||[]).find(c=>String(c.ID)===$('tCargo').value);
+  const trabajador = {
+    nombre:$('tNombre').value.trim(), rut:$('tRut').value.trim(),
+    cargoId:$('tCargo').value, cargo:cargoSel?cargoSel.Nombre:'', activo:$('tActivo').value
+  };
+  try{
+    if(S.editTrabId) await api({ action:'updateTrabajador', id:S.editTrabId, trabajador });
+    else await api({ action:'saveTrabajador', trabajador });
+    toast('Trabajador guardado ✔','ok');
+    resetTrabajadorForm();
+    await cargarDatos();
+  }catch(e){ toast(e.message,'err'); }
+}
+
+function renderTrabajadores(){
+  if(!S.data) return;
+  const ts = S.data.trabajadores||[];
+  $('listaTrabajadores').innerHTML = ts.length ? tabla(
+    ['Nombre','RUT','Cargo','Activo',''],
+    ts.map(t=>[esc(t.Nombre), t.RUT, esc(t.Cargo||'—'), t.Activo,
+      {html:`<div style="display:flex;gap:6px"><button class="btn ghost small" onclick="editarTrabajador('${t.ID}')">Editar</button>${S.rol==='admin'?`<button class="btn danger small" onclick="eliminarRegistro('Trabajadores','${t.ID}','al trabajador ${esc(t.Nombre)}')">Eliminar</button>`:''}</div>`}])
+  ) : '<div class="empty">Sin trabajadores registrados.</div>';
+}
+
+/* ================= GASTOS: CARGOS ================= */
+function resetCargoForm(){
+  S.editCargoId = null;
+  $('cgFormTitulo').textContent = 'Nuevo cargo';
+  $('cgGuardarBtn').textContent = 'Guardar cargo';
+  $('cgCancelarBtn').style.display = 'none';
+  ['cgNombre','cgNormal','cgSabado','cgDomingo','cgFeriado'].forEach(i=>$(i).value='');
+}
+
+function editarCargo(id){
+  const c = (S.data.cargos||[]).find(x=>String(x.ID)===String(id));
+  if(!c) return;
+  S.editCargoId = id;
+  $('cgFormTitulo').textContent = 'Editar cargo: ' + c.Nombre;
+  $('cgGuardarBtn').textContent = 'Guardar cambios';
+  $('cgCancelarBtn').style.display = 'inline-block';
+  $('cgNombre').value = c.Nombre||'';
+  $('cgNormal').value = c.ValorNormal||''; $('cgSabado').value = c.ValorSabado||'';
+  $('cgDomingo').value = c.ValorDomingo||''; $('cgFeriado').value = c.ValorFeriado||'';
+}
+
+async function guardarCargo(){
+  if(!$('cgNombre').value.trim()) return toast('Falta el nombre del cargo','err');
+  const cargo = {
+    nombre:$('cgNombre').value.trim(),
+    valorNormal:+$('cgNormal').value||0, valorSabado:+$('cgSabado').value||0,
+    valorDomingo:+$('cgDomingo').value||0, valorFeriado:+$('cgFeriado').value||0
+  };
+  try{
+    if(S.editCargoId) await api({ action:'updateCargo', id:S.editCargoId, cargo });
+    else await api({ action:'saveCargo', cargo });
+    toast('Cargo guardado ✔','ok');
+    resetCargoForm();
+    await cargarDatos();
+  }catch(e){ toast(e.message,'err'); }
+}
+
+function renderCargos(){
+  if(!S.data) return;
+  const cs = S.data.cargos||[];
+  $('listaCargos').innerHTML = cs.length ? tabla(
+    ['Cargo','Normal','Sábado','Domingo','Feriado',''],
+    cs.map(c=>[esc(c.Nombre),
+      {html:`<span class="num">${CLP(c.ValorNormal)}</span>`,cls:'r'},
+      {html:`<span class="num">${CLP(c.ValorSabado)}</span>`,cls:'r'},
+      {html:`<span class="num">${CLP(c.ValorDomingo)}</span>`,cls:'r'},
+      {html:`<span class="num">${CLP(c.ValorFeriado)}</span>`,cls:'r'},
+      {html:`<div style="display:flex;gap:6px"><button class="btn ghost small" onclick="editarCargo('${c.ID}')">Editar</button>${S.rol==='admin'?`<button class="btn danger small" onclick="eliminarRegistro('Cargos','${c.ID}','el cargo ${esc(c.Nombre)}')">Eliminar</button>`:''}</div>`}])
+  ) : '<div class="empty">Crea primero los cargos con sus valores por día.</div>';
+}
+
+/* ================= GASTOS: ASISTENCIA ================= */
+function autoTipoDia(){
+  const f = $('aFecha').value;
+  if(!f) return;
+  const dia = new Date(f+'T12:00:00').getDay();
+  $('aTipo').value = dia===6 ? 'Sábado' : dia===0 ? 'Domingo' : 'Normal';
+  autoValorDia();
+}
+
+function autoValorDia(){
+  const t = (S.data.trabajadores||[]).find(x=>String(x.ID)===$('aTrabajador').value);
+  if(!t) return;
+  const c = (S.data.cargos||[]).find(x=>String(x.ID)===String(t.CargoID));
+  if(!c) return;
+  const tipo = $('aTipo').value;
+  const v = tipo==='Sábado'?c.ValorSabado : tipo==='Domingo'?c.ValorDomingo : tipo==='Feriado'?c.ValorFeriado : c.ValorNormal;
+  $('aValor').value = Math.round(Number(v)||0);
+}
+
+function cancelarEdicionAsistencia(){
+  S.editAsiId = null;
+  $('aGuardarBtn').textContent = 'Registrar día';
+  $('aCancelarBtn').style.display = 'none';
+  $('aObs').value=''; $('aFecha').value = hoyISO(); autoTipoDia();
+}
+
+function editarAsistencia(id){
+  const a = (S.data.asistencia||[]).find(x=>String(x.ID)===String(id));
+  if(!a) return;
+  S.editAsiId = id;
+  $('aGuardarBtn').textContent = 'Guardar cambios';
+  $('aCancelarBtn').style.display = 'inline-block';
+  $('aFecha').value = String(a.Fecha||'').slice(0,10);
+  $('aTrabajador').value = a.TrabajadorID||'';
+  $('aTipo').value = a.TipoDia||'Normal';
+  $('aEntrada').value = a.HoraEntrada||'08:00'; $('aSalida').value = a.HoraSalida||'18:00';
+  $('aValor').value = a.ValorDia||''; $('aObs').value = a.Observacion||'';
+  $('sub-asistencia').scrollIntoView({behavior:'smooth'});
+}
+
+async function guardarAsistencia(){
+  const t = (S.data.trabajadores||[]).find(x=>String(x.ID)===$('aTrabajador').value);
+  if(!t) return toast('Selecciona un trabajador (créalo primero en "Trabajadores y cargos")','err');
+  if(!$('aFecha').value) return toast('Falta la fecha','err');
+  const asistencia = {
+    fecha:$('aFecha').value, trabajadorId:t.ID, trabajador:t.Nombre,
+    tipoDia:$('aTipo').value, horaEntrada:$('aEntrada').value, horaSalida:$('aSalida').value,
+    valorDia:+$('aValor').value||0, observacion:$('aObs').value.trim()
+  };
+  try{
+    if(S.editAsiId) await api({ action:'updateAsistencia', id:S.editAsiId, asistencia });
+    else await api({ action:'saveAsistencia', asistencia });
+    toast('Día registrado ✔','ok');
+    cancelarEdicionAsistencia();
+    await cargarDatos();
+  }catch(e){ toast(e.message,'err'); }
+}
+
+function renderAsistencia(){
+  if(!S.data) return;
+  const trab=$('filAsiTrab').value, mes=$('filAsiMes').value, pag=$('filAsiPag').value;
+  let as = (S.data.asistencia||[]).slice().sort((a,b)=>String(b.Fecha).localeCompare(String(a.Fecha)));
+  if(trab) as = as.filter(a=>a.Trabajador===trab);
+  if(mes) as = as.filter(a=>String(a.Fecha).startsWith(mes));
+  if(pag) as = as.filter(a=>String(a.Pagado).toUpperCase()===pag);
+  const total = as.reduce((s,a)=>s+Number(a.ValorDia||0),0);
+  $('listaAsistencia').innerHTML = as.length ?
+    `<p class="muted" style="margin-bottom:8px">${as.length} días · ${CLP(total)}</p>` + tabla(
+    ['Fecha','Trabajador','Tipo','Entrada','Salida','Valor día','Pagado',''],
+    as.map(a=>{
+      const pagado = String(a.Pagado).toUpperCase()==='SI';
+      return [a.Fecha, esc(a.Trabajador), a.TipoDia, a.HoraEntrada, a.HoraSalida,
+        {html:`<span class="num">${CLP(a.ValorDia)}</span>`,cls:'r'},
+        {html: pagado?'<span class="pill p-pag">Pagado</span>':'<span class="pill p-pen">Pendiente</span>'},
+        {html: pagado?'' : `<div style="display:flex;gap:6px"><button class="btn ghost small" onclick="editarAsistencia('${a.ID}')">Editar</button>${S.rol==='admin'?`<button class="btn danger small" onclick="eliminarRegistro('Asistencia','${a.ID}','el día ${a.Fecha} de ${esc(a.Trabajador)}')">Eliminar</button>`:''}</div>`}];
+    })
+  ) : '<div class="empty">Sin días registrados con ese filtro.</div>';
+}
+
+/* ================= GASTOS: SUELDOS ================= */
+function renderSueldos(){
+  if(!S.data) return;
+  const pend = (S.data.asistencia||[]).filter(a=>String(a.Pagado).toUpperCase()!=='SI');
+  const por = {};
+  pend.forEach(a=>{
+    (por[a.Trabajador]=por[a.Trabajador]||{dias:0,total:0,ids:[],fechas:[]});
+    por[a.Trabajador].dias++;
+    por[a.Trabajador].total+=Number(a.ValorDia||0);
+    por[a.Trabajador].ids.push(a.ID);
+    por[a.Trabajador].fechas.push(String(a.Fecha));
+  });
+  const keys = Object.keys(por);
+  $('listaSueldos').innerHTML = keys.length ? tabla(
+    ['Trabajador','Días pendientes','Desde','Hasta','Total a pagar',''],
+    keys.map(k=>{
+      const p = por[k]; p.fechas.sort();
+      return [esc(k), {html:`<span class="num">${p.dias}</span>`}, p.fechas[0], p.fechas[p.fechas.length-1],
+        {html:`<span class="num"><b>${CLP(p.total)}</b></span>`,cls:'r'},
+        {html:`<button class="btn sage small" onclick='pagarSueldo(${JSON.stringify(k)})'>Marcar pagado</button>`}];
+    })
+  ) : '<div class="empty">No hay sueldos pendientes 🎉</div>';
+}
+
+async function pagarSueldo(trabajador){
+  const pend = (S.data.asistencia||[]).filter(a=>a.Trabajador===trabajador && String(a.Pagado).toUpperCase()!=='SI');
+  const total = pend.reduce((s,a)=>s+Number(a.ValorDia||0),0);
+  const cuenta = prompt(`Pagar ${CLP(total)} a ${trabajador} (${pend.length} días).\n\n¿Desde qué cuenta/banco se pagó? (opcional)`);
+  if(cuenta===null) return; // canceló
+  try{
+    const r = await api({ action:'marcarSueldosPagados', ids:pend.map(a=>String(a.ID)), trabajador, cuentaPago:(cuenta||'').trim(), formaPago:'Transferencia' });
+    toast(`Sueldo pagado: ${CLP(r.total)} (${r.dias} días) — gasto registrado en Compras ✔`,'ok');
+    await cargarDatos();
+  }catch(e){ toast(e.message,'err'); }
+}
+
+/* ================= GASTOS: ARRIENDO ================= */
+async function guardarArriendo(){
+  const monto = +$('arMonto').value||0;
+  if(!monto) return toast('Falta el monto del arriendo','err');
+  try{
+    await api({ action:'saveCompra', compra:{
+      fecha:$('arFecha').value||hoyISO(), clasificacion:'Arriendo', asignacion:'Funcionamiento',
+      proveedor:'Arriendo bodega', rut:'', documento:'Sin documento', numDocumento:'',
+      neto:monto, iva:0, total:monto, formaPago:'Transferencia',
+      comentario:$('arComent').value.trim()||'Arriendo bodega', cuentaPago:$('arCuenta').value.trim(),
+      detalle:[]
+    }});
+    toast('Arriendo registrado ✔','ok');
+    ['arMonto','arComent','arCuenta'].forEach(i=>$(i).value='');
+    await cargarDatos();
+  }catch(e){ toast(e.message,'err'); }
+}
+
+function renderArriendos(){
+  if(!S.data) return;
+  const ar = (S.data.compras||[]).filter(c=>c.Clasificacion==='Arriendo')
+    .sort((a,b)=>String(b.Fecha).localeCompare(String(a.Fecha)));
+  $('listaArriendos').innerHTML = ar.length ? tabla(
+    ['Fecha','Monto','Cuenta','Comentario',''],
+    ar.map(c=>[c.Fecha,
+      {html:`<span class="num"><b>${CLP(c.Total)}</b></span>`,cls:'r'},
+      esc(c.CuentaPago||''), esc(c.Comentario),
+      {html:`<div style="display:flex;gap:6px"><button class="btn ghost small" onclick="editarCompraDesdeArriendo('${c.ID}')">Editar</button>${S.rol==='admin'?`<button class="btn danger small" onclick="eliminarRegistro('Compras','${c.ID}','el arriendo del ${c.Fecha}')">Eliminar</button>`:''}</div>`}])
+  ) : '<div class="empty">Sin arriendos registrados.</div>';
+}
+
+function editarCompraDesdeArriendo(id){
+  document.querySelector('#tabs button[data-view=compras]').click();
+  editarCompra(id);
+}
+
 /* ================= PROVEEDORES ================= */
+function limpiarProvForm(){
+  ['prEmpresa','prRut','prSucursal','prDireccion','prVendedor','prContacto'].forEach(i=>$(i).value='');
+}
+
+function abrirProvForm(){
+  S.editProvId = null;
+  $('prFormTitulo').textContent = 'Registrar proveedor';
+  $('prGuardarBtn').textContent = 'Guardar proveedor';
+  limpiarProvForm();
+  $('provForm').style.display = 'block';
+}
+
+function cerrarProvForm(){
+  S.editProvId = null;
+  $('provForm').style.display = 'none';
+}
+
+function editarProveedor(id){
+  const p = (S.data.proveedores||[]).find(x=>String(x.ID)===String(id));
+  if(!p) return toast('Proveedor no encontrado','err');
+  $('prFormTitulo').textContent = 'Editar: ' + p.Empresa;
+  $('prGuardarBtn').textContent = 'Guardar cambios';
+  $('prEmpresa').value = p.Empresa||''; $('prRut').value = p.RUT||'';
+  $('prSucursal').value = p.Sucursal||''; $('prDireccion').value = p.Direccion||'';
+  $('prVendedor').value = p.Vendedor||''; $('prContacto').value = p.Contacto||p.Mail||'';
+  S.editProvId = id;
+  $('provForm').style.display = 'block';
+  $('provForm').scrollIntoView({behavior:'smooth'});
+}
+
 async function guardarProveedor(){
   if(!$('prEmpresa').value.trim()) return toast('Falta el nombre de la empresa','err');
+  const proveedor = {
+    empresa:$('prEmpresa').value.trim(), rut:$('prRut').value.trim(), sucursal:$('prSucursal').value.trim(),
+    direccion:$('prDireccion').value.trim(), vendedor:$('prVendedor').value.trim(), contacto:$('prContacto').value.trim()
+  };
   try{
-    await api({ action:'saveProveedor', proveedor:{
-      empresa:$('prEmpresa').value.trim(), rut:$('prRut').value.trim(), sucursal:$('prSucursal').value.trim(),
-      direccion:$('prDireccion').value.trim(), vendedor:$('prVendedor').value.trim(), contacto:$('prContacto').value.trim()
-    }});
+    if(S.editProvId) await api({ action:'updateProveedor', id:S.editProvId, proveedor });
+    else await api({ action:'saveProveedor', proveedor });
     toast('Proveedor guardado ✔','ok');
-    toggleEl('provForm');
-    ['prEmpresa','prRut','prSucursal','prDireccion','prVendedor','prContacto'].forEach(i=>$(i).value='');
+    cerrarProvForm();
+    limpiarProvForm();
     await cargarDatos();
   }catch(e){ toast(e.message,'err'); }
 }
@@ -982,39 +1458,43 @@ function renderProveedores(){
   $('listaProveedores').innerHTML = ps.length ? tabla(
     ['Empresa','RUT','Sucursal','Dirección','Vendedor','Contacto',''],
     ps.map(p=>[esc(p.Empresa), p.RUT, esc(p.Sucursal), esc(p.Direccion), esc(p.Vendedor), esc(p.Contacto||p.Mail),
-      {html: S.rol==='admin'?`<button class="btn danger small" onclick="eliminarRegistro('Proveedores','${p.ID}','el proveedor ${esc(p.Empresa)}')">Eliminar</button>`:''}])
+      {html:`<div style="display:flex;gap:6px"><button class="btn ghost small" onclick="editarProveedor('${p.ID}')">Editar</button>${S.rol==='admin'?`<button class="btn danger small" onclick="eliminarRegistro('Proveedores','${p.ID}','el proveedor ${esc(p.Empresa)}')">Eliminar</button>`:''}</div>`}])
   ) : '<div class="empty">Aún no hay proveedores. Agrega el primero para autocompletar las compras.</div>';
 }
 
 /* ================= PRECIOS ================= */
 function renderPrecios(){
   if(!S.data) return;
-  $('cfgM3').value = precio('PRECIO_M3');
-  $('cfgB55').value = precio('PRECIO_BLOQUE_55');
-  $('cfgB100').value = precio('PRECIO_BLOQUE_100');
-  const rows = (S.data.config||[]).filter(r=>r.Clave!=='IVA').slice().reverse();
+  $('cfgM3').value = precioVigente('PRECIO_M3');
+  $('cfgB55').value = precioVigente('PRECIO_BLOQUE_55');
+  $('cfgB100').value = precioVigente('PRECIO_BLOQUE_100');
+  $('cfgDesde').value = hoyISO();
+  const rows = (S.data.config||[]).filter(r=>r.Clave!=='IVA').slice()
+    .sort((a,b)=>String(b.FechaVigencia).localeCompare(String(a.FechaVigencia)));
   $('histPrecios').innerHTML = rows.length ? tabla(
-    ['Fecha','Concepto','Valor neto','Registrado por'],
-    rows.map(r=>[r.FechaVigencia, r.Clave.replace('PRECIO_','').replace('_',' '),
+    ['Vigente desde','Concepto','Valor neto','Registrado por'],
+    rows.map(r=>[String(r.FechaVigencia).slice(0,10), r.Clave.replace('PRECIO_','').replace('_',' '),
       {html:`<span class="num">${CLP(r.Valor)}</span>`,cls:'r'}, r.RegistradoPor])
   ) : '<div class="empty">Sin historial.</div>';
   $('btnPrecios').style.display = S.rol==='admin' ? 'inline-block':'none';
 }
 
 async function guardarPrecios(){
+  const desde = $('cfgDesde').value || hoyISO();
   const cambios = [
     ['PRECIO_M3', +$('cfgM3').value],
     ['PRECIO_BLOQUE_55', +$('cfgB55').value],
     ['PRECIO_BLOQUE_100', +$('cfgB100').value]
-  ].filter(([k,v]) => v>0 && v!==precio(k));
-  if(!cambios.length) return toast('No hay cambios de precio','err');
+  ].filter(([k,v]) => v>0 && v!==precioVigente(k, desde));
+  if(!cambios.length) return toast('No hay cambios de precio respecto al tramo vigente','err');
   try{
-    for(const [clave,valor] of cambios) await api({ action:'savePrecio', clave, valor });
-    toast('Precios actualizados ✔','ok');
+    for(const [clave,valor] of cambios) await api({ action:'savePrecio', clave, valor, fechaVigencia:desde });
+    toast('Nuevo tramo de precios registrado ✔','ok');
     await cargarDatos();
   }catch(e){ toast(e.message,'err'); }
 }
 
+/* ================= ELIMINAR ================= */
 async function eliminarRegistro(hoja, id, desc){
   if(!confirm('¿Eliminar ' + desc + '?\n\nEsta acción no se puede deshacer.')) return;
   try{
@@ -1027,12 +1507,18 @@ async function eliminarRegistro(hoja, id, desc){
 /* ================= TABLA GENÉRICA ================= */
 function tabla(head, rows){
   return `<div class="tbl-wrap"><table>
-    <thead><tr>${head.map(h=>`<th class="${/Neto|Total|IVA|Valor/.test(h)?'r':''}">${h}</th>`).join('')}</tr></thead>
+    <thead><tr>${head.map(h=>`<th class="${/Neto|Total|IVA|Valor|Monto/.test(h)?'r':''}">${h}</th>`).join('')}</tr></thead>
     <tbody>${rows.map(r=>`<tr>${r.map(c=>
       typeof c==='object'&&c!==null ? `<td class="${c.cls||''}">${c.html}</td>` : `<td>${c??''}</td>`
     ).join('')}</tr>`).join('')}</tbody>
   </table></div>`;
 }
+
+/* Valores iniciales de formularios con fecha */
+document.addEventListener('DOMContentLoaded', ()=>{
+  ['aFecha','arFecha'].forEach(i=>{ if($(i)) $(i).value = hoyISO(); });
+  autoTipoDia && $('aFecha').value && setTimeout(()=>{ try{autoTipoDia()}catch(e){} },0);
+});
 </script>
 </body>
 </html>
