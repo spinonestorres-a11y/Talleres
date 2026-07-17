@@ -362,10 +362,12 @@
 
       <!-- Sueldos -->
       <div class="subview" id="sub-sueldos">
+        <p class="muted" style="margin-bottom:12px">Cada trabajador muestra sus días pendientes: puedes <b>editar el valor</b> de cualquier día, <b>eliminarlo</b>, y pagar <b>parcial</b> desmarcando los días que no quieras incluir. Al pagar se genera el gasto (clasificación "Sueldos") y se refleja en el dashboard.</p>
+        <div id="listaSueldos"></div>
         <div class="card">
-          <h3 style="font-size:14px;margin-bottom:6px">Sueldos pendientes de pago</h3>
-          <p class="muted" style="margin-bottom:14px">Suma de los días trabajados y no pagados de cada trabajador. Al marcar como pagado, se genera automáticamente el gasto (compra clasificación "Sueldos") y aparece en el dashboard.</p>
-          <div id="listaSueldos"></div>
+          <h3 style="font-size:14px;margin-bottom:6px">Pagos realizados</h3>
+          <p class="muted" style="margin-bottom:12px">¿Un pago salió mal? Elimínalo aquí: los días asociados vuelven a quedar pendientes para corregirlos y pagarlos de nuevo.</p>
+          <div id="listaPagosSueldos"></div>
         </div>
       </div>
 
@@ -481,19 +483,19 @@
 
     <!-- ========== PRECIOS ========== -->
     <section class="view" id="view-precios">
-      <div class="view-head"><h2>Precios por tramos</h2></div>
+      <div class="view-head"><h2>Precios por licitación</h2></div>
       <div class="card">
-        <p class="muted" style="margin-bottom:14px">Cada precio rige <b>desde su fecha de vigencia</b> hasta que se registre uno nuevo. Los pedidos se calculan con el precio vigente a la fecha del pedido — así los pedidos antiguos mantienen sus valores.</p>
+        <p class="muted" style="margin-bottom:14px">El precio es <b>fijo durante toda la licitación</b> (del 05/05 al 04/05 del año siguiente). Elige la licitación, registra sus precios netos, y cada pedido se calcula con los precios de la licitación a la que pertenece según su fecha.</p>
         <div class="grid g3">
+          <div class="field" style="grid-column:1/-1"><label>Licitación</label><select id="cfgLic" onchange="cargarPreciosTramo()"></select></div>
           <div class="field"><label>Valor m³ terciado mueblista (cubos)</label><input id="cfgM3" type="number" min="0"></div>
           <div class="field"><label>Bloque estándar 55 mm (1200×2400)</label><input id="cfgB55" type="number" min="0"></div>
           <div class="field"><label>Bloque estándar 100 mm (1200×2400)</label><input id="cfgB100" type="number" min="0"></div>
-          <div class="field"><label>Vigente desde</label><input id="cfgDesde" type="date"></div>
         </div>
-        <button class="btn" style="margin-top:14px" onclick="guardarPrecios()" id="btnPrecios">Registrar nuevo tramo de precios</button>
+        <button class="btn" style="margin-top:14px" onclick="guardarPrecios()" id="btnPrecios">Guardar precios de esta licitación</button>
       </div>
       <div class="card">
-        <h3 style="font-size:14px;margin-bottom:12px">Historial de tramos</h3>
+        <h3 style="font-size:14px;margin-bottom:12px">Historial por licitación</h3>
         <div id="histPrecios"></div>
       </div>
     </section>
@@ -574,7 +576,7 @@ const fmtCorto = n=>{
 };
 
 /* Períodos de licitación del cliente: parten el 05/05 y terminan el 04/05 del año siguiente */
-function licitaciones(){
+function licitaciones(extraFuturo){
   const fechas = []
     .concat((S.data.pedidos||[]).map(r=>r.Fecha))
     .concat((S.data.compras||[]).map(r=>r.Fecha))
@@ -585,6 +587,7 @@ function licitaciones(){
   const first = fechas[0] || hoy, last = fechas[fechas.length-1] > hoy ? fechas[fechas.length-1] : hoy;
   let yIni = +first.slice(0,4); if(first < yIni+'-05-05') yIni--;
   let yFin = +last.slice(0,4); if(last < yFin+'-05-05') yFin--;
+  yFin += (extraFuturo||0);
   const res = [];
   for(let y=yFin; y>=yIni; y--){
     res.push({ desde:`${y}-05-05`, hasta:`${y+1}-05-04`, label:`Licitación ${y}–${y+1} (05/05/${String(y).slice(2)} → 04/05/${String(y+1).slice(2)})` });
@@ -1610,7 +1613,7 @@ function renderAsistencia(){
       return [a.Fecha, esc(a.Trabajador), a.TipoDia, a.HoraEntrada, a.HoraSalida,
         {html:`<span class="num">${CLP(a.ValorDia)}</span>`,cls:'r'},
         {html: pagado?'<span class="pill p-pag">Pagado</span>':'<span class="pill p-pen">Pendiente</span>'},
-        {html: pagado?'' : `<div style="display:flex;gap:6px"><button class="btn ghost small" onclick="editarAsistencia('${a.ID}')">Editar</button>${S.rol==='admin'?`<button class="btn danger small" onclick="eliminarRegistro('Asistencia','${a.ID}','el día ${a.Fecha} de ${esc(a.Trabajador)}')">Eliminar</button>`:''}</div>`}];
+        {html: pagado? `<span class="muted" title="Día pagado. Para modificarlo, elimina su pago en Sueldos pendientes → Pagos realizados">🔒</span>` : `<div style="display:flex;gap:6px"><button class="btn ghost small" onclick="editarAsistencia('${a.ID}')">Editar</button>${S.rol==='admin'?`<button class="btn danger small" onclick="eliminarRegistro('Asistencia','${a.ID}','el día ${a.Fecha} de ${esc(a.Trabajador)}')">Eliminar</button>`:''}</div>`}];
     })
   ) : '<div class="empty">Sin días registrados con ese filtro.</div>';
 }
@@ -1620,33 +1623,94 @@ function renderSueldos(){
   if(!S.data) return;
   const pend = (S.data.asistencia||[]).filter(a=>String(a.Pagado).toUpperCase()!=='SI');
   const por = {};
-  pend.forEach(a=>{
-    (por[a.Trabajador]=por[a.Trabajador]||{dias:0,total:0,ids:[],fechas:[]});
-    por[a.Trabajador].dias++;
-    por[a.Trabajador].total+=Number(a.ValorDia||0);
-    por[a.Trabajador].ids.push(a.ID);
-    por[a.Trabajador].fechas.push(String(a.Fecha));
-  });
+  pend.forEach(a=>{ (por[a.Trabajador]=por[a.Trabajador]||[]).push(a); });
   const keys = Object.keys(por);
-  $('listaSueldos').innerHTML = keys.length ? tabla(
-    ['Trabajador','Días pendientes','Desde','Hasta','Total a pagar',''],
-    keys.map(k=>{
-      const p = por[k]; p.fechas.sort();
-      return [esc(k), {html:`<span class="num">${p.dias}</span>`}, p.fechas[0], p.fechas[p.fechas.length-1],
-        {html:`<span class="num"><b>${CLP(p.total)}</b></span>`,cls:'r'},
-        {html:`<button class="btn sage small" onclick='pagarSueldo(${JSON.stringify(k)})'>Marcar pagado</button>`}];
-    })
-  ) : '<div class="empty">No hay sueldos pendientes 🎉</div>';
+  S._sueldoTrabs = keys;
+
+  $('listaSueldos').innerHTML = keys.length ? keys.map((k,idx)=>{
+    const regs = por[k].slice().sort((a,b)=>String(a.Fecha).localeCompare(String(b.Fecha)));
+    const total = regs.reduce((s,a)=>s+Number(a.ValorDia||0),0);
+    const filas = regs.map(a=>`<tr>
+      <td><input type="checkbox" class="selDia" data-id="${a.ID}" checked onchange="totalSelSueldo(${idx})"></td>
+      <td>${a.Fecha}</td><td>${a.TipoDia}</td>
+      <td class="r"><input type="number" min="0" value="${Math.round(a.ValorDia||0)}" style="width:110px;text-align:right" onchange="editarValorDia('${a.ID}', this)" title="Editable: se guarda al salir del campo"></td>
+      <td>${S.rol==='admin'?`<button class="btn danger small" onclick="eliminarRegistro('Asistencia','${a.ID}','el día ${a.Fecha} de ${esc(k)}')">Eliminar</button>`:''}</td>
+    </tr>`).join('');
+    return `<div class="card" id="sueldoBlk${idx}">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <div><b>${esc(k)}</b> <span class="muted">· ${regs.length} días pendientes · ${CLP(total)}</span></div>
+        <button class="btn sage small" onclick="pagarSueldoSel(${idx})">Pagar seleccionados: <span class="selTot num">${CLP(total)}</span></button>
+      </div>
+      <div class="tbl-wrap" style="margin-top:10px"><table>
+        <thead><tr><th>Pagar</th><th>Fecha</th><th>Tipo</th><th class="r">Valor día (editable)</th><th></th></tr></thead>
+        <tbody>${filas}</tbody>
+      </table></div>
+    </div>`;
+  }).join('') : '<div class="empty">No hay sueldos pendientes 🎉</div>';
+
+  renderPagosSueldos();
 }
 
-async function pagarSueldo(trabajador){
-  const pend = (S.data.asistencia||[]).filter(a=>a.Trabajador===trabajador && String(a.Pagado).toUpperCase()!=='SI');
-  const total = pend.reduce((s,a)=>s+Number(a.ValorDia||0),0);
-  const cuenta = prompt(`Pagar ${CLP(total)} a ${trabajador} (${pend.length} días).\n\n¿Desde qué cuenta/banco se pagó? (opcional)`);
+function renderPagosSueldos(){
+  const pagos = (S.data.compras||[]).filter(c=>c.Clasificacion==='Sueldos')
+    .sort((a,b)=>String(b.Fecha).localeCompare(String(a.Fecha)));
+  $('listaPagosSueldos').innerHTML = pagos.length ? tabla(
+    ['Fecha','Trabajador','Monto','Comentario',''],
+    pagos.map(c=>[c.Fecha, esc(c.Proveedor),
+      {html:`<span class="num"><b>${CLP(c.Total)}</b></span>`,cls:'r'}, esc(c.Comentario),
+      {html:`<div style="display:flex;gap:6px"><button class="btn ghost small" onclick="editarCompraDesdeArriendo('${c.ID}')">Editar</button>${S.rol==='admin'?`<button class="btn danger small" onclick="eliminarRegistro('Compras','${c.ID}','este pago de sueldo a ${esc(c.Proveedor)} (los días asociados vuelven a quedar pendientes)')">Eliminar pago</button>`:''}</div>`}])
+  ) : '<div class="empty">Aún no hay pagos de sueldo registrados.</div>';
+}
+
+function totalSelSueldo(idx){
+  const blk = $('sueldoBlk'+idx);
+  if(!blk) return;
+  let t=0;
+  blk.querySelectorAll('tbody tr').forEach(tr=>{
+    if(tr.querySelector('.selDia').checked) t += +tr.querySelector('input[type=number]').value||0;
+  });
+  blk.querySelector('.selTot').textContent = CLP(t);
+}
+
+async function editarValorDia(id, input){
+  const a = (S.data.asistencia||[]).find(x=>String(x.ID)===String(id));
+  if(!a) return;
+  const v = +input.value||0;
+  try{
+    await api({ action:'updateAsistencia', id, asistencia:{
+      fecha:String(a.Fecha).slice(0,10), trabajadorId:a.TrabajadorID, trabajador:a.Trabajador,
+      tipoDia:a.TipoDia, horaEntrada:a.HoraEntrada||'', horaSalida:a.HoraSalida||'',
+      valorDia:v, observacion:a.Observacion||''
+    }});
+    a.ValorDia = v; // actualizar en memoria sin recargar todo
+    toast('Valor del día actualizado ✔','ok');
+    const blk = input.closest('[id^=sueldoBlk]');
+    if(blk) totalSelSueldo(+blk.id.replace('sueldoBlk',''));
+    renderAsistencia();
+    renderDashboard();
+  }catch(e){
+    toast(e.message,'err');
+    input.value = Math.round(a.ValorDia||0);
+  }
+}
+
+async function pagarSueldoSel(idx){
+  const trabajador = (S._sueldoTrabs||[])[idx];
+  const blk = $('sueldoBlk'+idx);
+  if(!trabajador || !blk) return;
+  const ids=[]; let total=0;
+  const nTotal = blk.querySelectorAll('tbody tr').length;
+  blk.querySelectorAll('tbody tr').forEach(tr=>{
+    const chk = tr.querySelector('.selDia');
+    if(chk.checked){ ids.push(String(chk.dataset.id)); total += +tr.querySelector('input[type=number]').value||0; }
+  });
+  if(!ids.length) return toast('Marca al menos un día para pagar','err');
+  const parcial = ids.length < nTotal ? ` (pago parcial: ${ids.length} de ${nTotal} días)` : ` (${ids.length} días)`;
+  const cuenta = prompt(`Pagar ${CLP(total)} a ${trabajador}${parcial}.\n\n¿Desde qué cuenta/banco se pagó? (opcional)`);
   if(cuenta===null) return; // canceló
   try{
-    const r = await api({ action:'marcarSueldosPagados', ids:pend.map(a=>String(a.ID)), trabajador, cuentaPago:(cuenta||'').trim(), formaPago:'Transferencia' });
-    toast(`Sueldo pagado: ${CLP(r.total)} (${r.dias} días) — gasto registrado en Compras ✔`,'ok');
+    const r = await api({ action:'marcarSueldosPagados', ids, trabajador, cuentaPago:(cuenta||'').trim(), formaPago:'Transferencia' });
+    toast(`Pago registrado: ${CLP(r.total)} (${r.dias} días) — gasto creado en Compras ✔`,'ok');
     await cargarDatos();
   }catch(e){ toast(e.message,'err'); }
 }
@@ -1748,44 +1812,74 @@ function renderProveedores(){
 }
 
 /* ================= PRECIOS ================= */
+/** Valor registrado EXACTAMENTE para el inicio de un tramo (o null si no hay) */
+function precioDelTramo(clave, desde){
+  const rows = (S.data.config||[]).filter(r=>r.Clave===clave && String(r.FechaVigencia).slice(0,10)===desde);
+  return rows.length ? (Number(rows[rows.length-1].Valor)||0) : null;
+}
+
 function renderPrecios(){
   if(!S.data) return;
-  $('cfgM3').value = precioVigente('PRECIO_M3');
-  $('cfgB55').value = precioVigente('PRECIO_BLOQUE_55');
-  $('cfgB100').value = precioVigente('PRECIO_BLOQUE_100');
-  $('cfgDesde').value = hoyISO();
+  const sel = $('cfgLic');
+  const lics = licitaciones(1); // incluye la próxima licitación para dejar precios listos
+  const cur = sel.value;
+  sel.innerHTML = lics.map(l=>`<option value="${l.desde}|${l.hasta}">${l.label}</option>`).join('');
+  if(cur && lics.some(l=>l.desde+'|'+l.hasta===cur)) sel.value = cur;
+  else {
+    const hoy = hoyISO();
+    const vig = lics.find(l=>hoy>=l.desde && hoy<=l.hasta);
+    if(vig) sel.value = vig.desde+'|'+vig.hasta;
+  }
+  cargarPreciosTramo();
+
+  // Historial: una fila por clave+licitación (si se corrigió, muestra la última corrección)
   const rows = (S.data.config||[]).filter(r=>r.Clave!=='IVA');
-  // Calcular "hasta": el tramo rige hasta que parte el siguiente de la misma clave
-  const porClave = {};
-  rows.slice().sort((a,b)=>String(a.FechaVigencia).localeCompare(String(b.FechaVigencia)))
-    .forEach(r=>{ (porClave[r.Clave]=porClave[r.Clave]||[]).push(r); });
-  const hastaDe = r => {
-    const arr = porClave[r.Clave];
-    const i = arr.indexOf(r);
-    return i < arr.length-1 ? String(arr[i+1].FechaVigencia).slice(0,10) : 'Sin término (vigente)';
-  };
-  const orden = rows.slice().sort((a,b)=>String(b.FechaVigencia).localeCompare(String(a.FechaVigencia)));
-  $('histPrecios').innerHTML = orden.length ? tabla(
-    ['Vigente desde','Vigente hasta','Concepto','Valor neto','Registrado por'],
-    orden.map(r=>[String(r.FechaVigencia).slice(0,10),
-      {html: hastaDe(r)==='Sin término (vigente)' ? '<span class="pill p-pag">Sin término (vigente)</span>' : hastaDe(r)},
-      r.Clave.replace('PRECIO_','').replace('_',' '),
-      {html:`<span class="num">${CLP(r.Valor)}</span>`,cls:'r'}, r.RegistradoPor])
-  ) : '<div class="empty">Sin historial.</div>';
+  const map = {};
+  rows.forEach(r=>{ map[r.Clave+'|'+String(r.FechaVigencia).slice(0,10)] = r; });
+  const unicos = Object.values(map).sort((a,b)=>String(b.FechaVigencia).localeCompare(String(a.FechaVigencia)));
+  const licDe = f => lics.find(x=>f>=x.desde && f<=x.hasta);
+  $('histPrecios').innerHTML = unicos.length ? tabla(
+    ['Licitación','Desde','Hasta','Concepto','Valor neto','Registrado por'],
+    unicos.map(r=>{
+      const f = String(r.FechaVigencia).slice(0,10);
+      const l = licDe(f);
+      return [ l ? l.label.replace(/\s*\(.*\)$/,'') : '—', f, l ? l.hasta : '—',
+        r.Clave.replace('PRECIO_','').replace('_',' '),
+        {html:`<span class="num">${CLP(r.Valor)}</span>`,cls:'r'}, r.RegistradoPor ];
+    })
+  ) : '<div class="empty">Sin precios registrados. Elige una licitación y registra sus valores.</div>';
   $('btnPrecios').style.display = S.rol==='admin' ? 'inline-block':'none';
 }
 
+function cargarPreciosTramo(){
+  const v = $('cfgLic').value;
+  if(!v) return;
+  const desde = v.split('|')[0];
+  [['cfgM3','PRECIO_M3'],['cfgB55','PRECIO_BLOQUE_55'],['cfgB100','PRECIO_BLOQUE_100']].forEach(([id,clave])=>{
+    const propio = precioDelTramo(clave, desde);
+    const inp = $(id);
+    if(propio!==null){ inp.value = propio; inp.placeholder=''; }
+    else {
+      inp.value = '';
+      const heredado = precioVigente(clave, desde);
+      inp.placeholder = heredado ? ('Sin definir — usaría '+CLP(heredado)) : 'Sin definir';
+    }
+  });
+}
+
 async function guardarPrecios(){
-  const desde = $('cfgDesde').value || hoyISO();
+  const v = $('cfgLic').value;
+  if(!v) return toast('Selecciona la licitación','err');
+  const desde = v.split('|')[0];
   const cambios = [
     ['PRECIO_M3', +$('cfgM3').value],
     ['PRECIO_BLOQUE_55', +$('cfgB55').value],
     ['PRECIO_BLOQUE_100', +$('cfgB100').value]
-  ].filter(([k,v]) => v>0 && v!==precioVigente(k, desde));
-  if(!cambios.length) return toast('No hay cambios de precio respecto al tramo vigente','err');
+  ].filter(([k,val]) => val>0 && val!==precioDelTramo(k, desde));
+  if(!cambios.length) return toast('No hay cambios respecto a lo ya registrado para esta licitación','err');
   try{
     for(const [clave,valor] of cambios) await api({ action:'savePrecio', clave, valor, fechaVigencia:desde });
-    toast('Nuevo tramo de precios registrado ✔','ok');
+    toast('Precios de la licitación guardados ✔','ok');
     await cargarDatos();
   }catch(e){ toast(e.message,'err'); }
 }
