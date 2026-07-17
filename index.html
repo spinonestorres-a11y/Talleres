@@ -7,6 +7,7 @@
 <title>Gestión Bloques de Terciado</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <style>
   :root{
     --bg:#14171a; --panel:#1c2126; --panel2:#232a30; --line:#2e373f;
@@ -158,20 +159,26 @@
     <section class="view active" id="view-dashboard">
       <div class="view-head">
         <h2>Panel de control</h2>
-        <select id="dashYear" style="width:auto"></select>
+        <span class="periodo" data-pfx="dash" style="display:flex;gap:8px;flex-wrap:wrap"></span>
       </div>
       <div class="kpis">
-        <div class="kpi amber" onclick="irReporte('ventas')"><div class="lab">Ventas netas</div><div class="val num" id="kVentas">—</div><div class="sub">Pedidos del año (neto)</div></div>
-        <div class="kpi sage" onclick="irReporte('compras')"><div class="lab">Compras y gastos</div><div class="val num" id="kCompras">—</div><div class="sub">Compras del año (neto, incluye sueldos y arriendo pagados)</div></div>
-        <div class="kpi green" onclick="irReporte('ventas')"><div class="lab">Margen</div><div class="val num" id="kMargen">—</div><div class="sub">Ventas − compras y gastos</div></div>
-        <div class="kpi" onclick="irReporte('ventas')"><div class="lab">m³ fabricados</div><div class="val num" id="kM3">—</div><div class="sub">Volumen de pedidos del año</div></div>
-        <div class="kpi red" onclick="irReporte('facturas')"><div class="lab">Por cobrar</div><div class="val num" id="kPorCobrar">—</div><div class="sub">Facturas Henko emitidas y aún no pagadas (total c/IVA)</div></div>
-        <div class="kpi red" onclick="irReporte('asistencia')"><div class="lab">Sueldos pendientes</div><div class="val num" id="kSueldosPend">—</div><div class="sub">Días trabajados sin pagar (todas las fechas)</div></div>
+        <div class="kpi amber" onclick="irReporte('ventas')"><div class="lab">Ventas netas</div><div class="val num" id="kVentas">—</div><div class="sub">Pedidos del período (neto)</div></div>
+        <div class="kpi sage" onclick="irReporte('compras')"><div class="lab">Compras y gastos</div><div class="val num" id="kCompras">—</div><div class="sub">Neto del período (incluye sueldos y arriendo pagados)</div></div>
+        <div class="kpi green" onclick="irReporte('ventas')"><div class="lab">Margen</div><div class="val num" id="kMargen">—</div><div class="sub" id="kMargenSub">Ventas − compras y gastos</div></div>
+        <div class="kpi" onclick="irReporte('ventas')"><div class="lab">m³ fabricados</div><div class="val num" id="kM3">—</div><div class="sub">Volumen de pedidos del período</div></div>
+        <div class="kpi amber" onclick="irReporte('ventas')"><div class="lab">Precio prom. m³</div><div class="val num" id="kPm3">—</div><div class="sub">Ventas netas ÷ m³ del período</div></div>
+        <div class="kpi" onclick="irReporte('ventas')"><div class="lab">Pedidos</div><div class="val num" id="kNPed">—</div><div class="sub">Cantidad de pedidos del período</div></div>
+        <div class="kpi sage" onclick="irReporte('asistencia')"><div class="lab">Mano de obra</div><div class="val num" id="kManoObra">—</div><div class="sub" id="kManoObraSub">Días trabajados del período</div></div>
+        <div class="kpi sage" onclick="irReporte('compras')"><div class="lab">Arriendo</div><div class="val num" id="kArriendo">—</div><div class="sub">Arriendo de bodega del período</div></div>
+        <div class="kpi red" onclick="irReporte('facturas')"><div class="lab">Por cobrar</div><div class="val num" id="kPorCobrar">—</div><div class="sub">Facturas Henko no pagadas hoy (total c/IVA, no depende del período)</div></div>
+        <div class="kpi red" onclick="irReporte('asistencia')"><div class="lab">Sueldos pendientes</div><div class="val num" id="kSueldosPend">—</div><div class="sub">Días sin pagar hoy (no depende del período)</div></div>
       </div>
       <p class="muted" style="margin:-6px 0 14px">Toca una tarjeta para abrir su reporte con filtros y descarga a Excel.</p>
       <div class="grid g2">
-        <div class="card"><h3 style="font-size:14px;margin-bottom:12px">Ventas vs Compras (neto mensual)</h3><div class="chart-box"><canvas id="chVsC"></canvas></div></div>
+        <div class="card"><h3 style="font-size:14px;margin-bottom:12px">Ventas, compras y margen</h3><div class="chart-box"><canvas id="chVsC"></canvas></div></div>
         <div class="card"><h3 style="font-size:14px;margin-bottom:12px">Compras y gastos por clasificación</h3><div class="chart-box"><canvas id="chClas"></canvas></div></div>
+        <div class="card"><h3 style="font-size:14px;margin-bottom:12px">Top modelos por venta (neto)</h3><div class="chart-box"><canvas id="chModelos"></canvas></div></div>
+        <div class="card"><h3 style="font-size:14px;margin-bottom:12px">Mano de obra por trabajador</h3><div class="chart-box"><canvas id="chMano"></canvas></div></div>
       </div>
       <div class="card">
         <h3 style="font-size:14px;margin-bottom:12px">Facturas pendientes de pago</h3>
@@ -215,6 +222,7 @@
           <option value="">Todos los estados</option>
           <option>En fabricación</option><option>Entregado</option><option>Facturado</option><option>Pagado</option>
         </select>
+        <span class="periodo" data-pfx="ped" style="display:contents"></span>
       </div>
       <div id="listaPedidos"></div>
     </section>
@@ -252,6 +260,7 @@
       <div class="filters">
         <select id="filFacTipo" onchange="renderFacturas()"><option value="">Henko + Adebo</option><option>Henko</option><option>Adebo</option></select>
         <select id="filFacEstado" onchange="renderFacturas()"><option value="">Todos los estados</option><option>Emitida</option><option>Pagada</option><option>Por facturar</option><option>Anulada</option></select>
+        <span class="periodo" data-pfx="fac" style="display:contents"></span>
       </div>
       <div id="listaFacturas"></div>
     </section>
@@ -303,7 +312,7 @@
       <div class="filters">
         <input id="filComTxt" placeholder="Buscar proveedor, comentario…" oninput="renderCompras()">
         <select id="filComClas" onchange="renderCompras()"><option value="">Todas las clasificaciones</option><option>Material</option><option>Combustible</option><option>Equipamiento</option><option>Servicio</option><option>Arriendo</option><option>Sueldos</option><option>Otro</option></select>
-        <select id="filComMes" onchange="renderCompras()"><option value="">Todos los meses</option></select>
+        <span class="periodo" data-pfx="com" style="display:contents"></span>
       </div>
       <div id="listaCompras"></div>
     </section>
@@ -338,7 +347,7 @@
         </div>
         <div class="filters">
           <select id="filAsiTrab" onchange="renderAsistencia()"><option value="">Todos los trabajadores</option></select>
-          <select id="filAsiMes" onchange="renderAsistencia()"><option value="">Todos los meses</option></select>
+          <span class="periodo" data-pfx="asi" style="display:contents"></span>
           <select id="filAsiPag" onchange="renderAsistencia()"><option value="">Pagados y pendientes</option><option value="NO">Solo pendientes</option><option value="SI">Solo pagados</option></select>
         </div>
         <div id="listaAsistencia"></div>
@@ -432,14 +441,7 @@
           <option value="facturas">Facturas</option>
           <option value="asistencia">Asistencia</option>
         </select>
-        <select id="repAnio" onchange="renderReporte()"></select>
-        <select id="repMes" onchange="renderReporte()">
-          <option value="">Todos los meses</option>
-          <option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option>
-          <option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option>
-          <option value="07">Julio</option><option value="08">Agosto</option><option value="09">Septiembre</option>
-          <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
-        </select>
+        <span class="periodo" data-pfx="rep" style="display:contents"></span>
         <input id="repTxt" placeholder="Buscar…" oninput="renderReporte()">
       </div>
       <div class="totals-bar" id="repResumen" style="margin:0 0 12px"></div>
@@ -554,6 +556,124 @@ function precioVigente(clave, fecha){
   return Number(rows[rows.length-1].Valor)||0;
 }
 
+/* ================= PERÍODOS (licitación / mes / semana / día) ================= */
+if(window.ChartDataLabels) Chart.register(ChartDataLabels);
+
+const fmtCorto = n=>{
+  n = Math.round(n||0);
+  if(Math.abs(n)>=1e6) return '$'+(n/1e6).toLocaleString('es-CL',{maximumFractionDigits:1})+'M';
+  if(Math.abs(n)>=1e3) return '$'+Math.round(n/1e3).toLocaleString('es-CL')+'k';
+  return '$'+n.toLocaleString('es-CL');
+};
+
+/* Períodos de licitación del cliente: parten el 05/05 y terminan el 04/05 del año siguiente */
+function licitaciones(){
+  const fechas = []
+    .concat((S.data.pedidos||[]).map(r=>r.Fecha))
+    .concat((S.data.compras||[]).map(r=>r.Fecha))
+    .concat((S.data.facturas||[]).map(r=>r.Fecha))
+    .concat((S.data.asistencia||[]).map(r=>r.Fecha))
+    .map(f=>String(f||'').slice(0,10)).filter(f=>/^\d{4}-\d{2}-\d{2}$/.test(f)).sort();
+  const hoy = hoyISO();
+  const first = fechas[0] || hoy, last = fechas[fechas.length-1] > hoy ? fechas[fechas.length-1] : hoy;
+  let yIni = +first.slice(0,4); if(first < yIni+'-05-05') yIni--;
+  let yFin = +last.slice(0,4); if(last < yFin+'-05-05') yFin--;
+  const res = [];
+  for(let y=yFin; y>=yIni; y--){
+    res.push({ desde:`${y}-05-05`, hasta:`${y+1}-05-04`, label:`Licitación ${y}–${y+1} (05/05/${String(y).slice(2)} → 04/05/${String(y+1).slice(2)})` });
+  }
+  return res;
+}
+
+function semanaActual(){
+  const d = new Date();
+  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const day = t.getUTCDay()||7;
+  t.setUTCDate(t.getUTCDate()+4-day);
+  const y = t.getUTCFullYear();
+  const w = Math.ceil((((t - Date.UTC(y,0,1))/86400000)+1)/7);
+  return `${y}-W${String(w).padStart(2,'0')}`;
+}
+
+function rangoSemana(v){
+  const [y,w] = String(v).split('-W').map(Number);
+  const simple = new Date(Date.UTC(y,0,4));
+  const day = simple.getUTCDay()||7;
+  const lunesSem1 = new Date(simple); lunesSem1.setUTCDate(simple.getUTCDate()-day+1);
+  const lunes = new Date(lunesSem1); lunes.setUTCDate(lunesSem1.getUTCDate()+(w-1)*7);
+  const domingo = new Date(lunes); domingo.setUTCDate(lunes.getUTCDate()+6);
+  const iso = x=>x.toISOString().slice(0,10);
+  return {d:iso(lunes), h:iso(domingo)};
+}
+
+function initPeriodos(){
+  document.querySelectorAll('.periodo').forEach(sp=>{
+    if(sp.dataset.ready) return;
+    sp.dataset.ready = '1';
+    const pfx = sp.dataset.pfx;
+    sp.innerHTML = `
+      <select id="${pfx}Modo" onchange="cambioModoPeriodo('${pfx}')">
+        <option value="">Todo el historial</option>
+        <option value="lic">Licitación</option>
+        <option value="mes">Mes</option>
+        <option value="sem">Semana</option>
+        <option value="dia">Día</option>
+      </select>
+      <span id="${pfx}ValWrap" style="display:contents"></span>`;
+    if(pfx==='dash'){ // el dashboard parte en la licitación vigente
+      $(pfx+'Modo').value = 'lic';
+      cambioModoPeriodo(pfx, true);
+    }
+  });
+}
+
+function cambioModoPeriodo(pfx, silencioso){
+  const modo = $(pfx+'Modo').value;
+  const w = $(pfx+'ValWrap');
+  const on = `onchange="refrescarPeriodo('${pfx}')"`;
+  if(modo==='') w.innerHTML = '';
+  else if(modo==='lic'){
+    const lics = licitaciones();
+    const hoy = hoyISO();
+    w.innerHTML = `<select id="${pfx}Val" ${on}>` +
+      lics.map(l=>`<option value="${l.desde}|${l.hasta}" ${hoy>=l.desde&&hoy<=l.hasta?'selected':''}>${l.label}</option>`).join('') + `</select>`;
+  }
+  else if(modo==='mes') w.innerHTML = `<input type="month" id="${pfx}Val" value="${hoyISO().slice(0,7)}" ${on}>`;
+  else if(modo==='sem') w.innerHTML = `<input type="week" id="${pfx}Val" value="${semanaActual()}" ${on}>`;
+  else if(modo==='dia') w.innerHTML = `<input type="date" id="${pfx}Val" value="${hoyISO()}" ${on}>`;
+  if(!silencioso) refrescarPeriodo(pfx);
+}
+
+function rangoPeriodo(pfx){
+  const modoEl = $(pfx+'Modo');
+  if(!modoEl || !modoEl.value) return null;
+  const valEl = $(pfx+'Val');
+  const v = valEl ? valEl.value : '';
+  if(!v) return null;
+  const modo = modoEl.value;
+  if(modo==='lic'){ const [d,h]=v.split('|'); return {d,h}; }
+  if(modo==='mes'){
+    const y=+v.slice(0,4), m=+v.slice(5,7);
+    const fin = new Date(y, m, 0); // último día del mes
+    return {d:v+'-01', h:`${fin.getFullYear()}-${String(fin.getMonth()+1).padStart(2,'0')}-${String(fin.getDate()).padStart(2,'0')}`};
+  }
+  if(modo==='sem') return rangoSemana(v);
+  if(modo==='dia') return {d:v, h:v};
+  return null;
+}
+
+function enPeriodo(pfx, fecha){
+  const r = rangoPeriodo(pfx);
+  if(!r) return true;
+  const f = String(fecha||'').slice(0,10);
+  return f >= r.d && f <= r.h;
+}
+
+function refrescarPeriodo(pfx){
+  const fn = {dash:renderDashboard, ped:renderPedidos, fac:renderFacturas, com:renderCompras, asi:renderAsistencia, rep:renderReporte}[pfx];
+  if(fn) fn();
+}
+
 /* ================= LOGIN / SESIÓN ================= */
 $('loginForm').addEventListener('submit', async ev=>{
   ev.preventDefault();
@@ -652,35 +772,23 @@ function llenarDatalists(){
 }
 
 function llenarFiltros(){
-  const years = new Set((S.data.pedidos||[]).concat(S.data.compras||[]).map(r=>String(r.Fecha).slice(0,4)).filter(y=>/^\d{4}$/.test(y)));
-  years.add(String(new Date().getFullYear()));
-  const sel = $('dashYear'); const cur = sel.value;
-  sel.innerHTML = [...years].sort().reverse().map(y=>`<option>${y}</option>`).join('');
-  if(cur && [...years].includes(cur)) sel.value = cur;
-  sel.onchange = renderDashboard;
-
-  const selR = $('repAnio'); const curR = selR.value;
-  selR.innerHTML = '<option value="">Todos los años</option>' + [...years].sort().reverse().map(y=>`<option>${y}</option>`).join('');
-  if(curR && [...years].includes(curR)) selR.value = curR;
-
-  const mesesOpt = arr => '<option value="">Todos los meses</option>' +
-    [...new Set(arr.map(x=>String(x.Fecha).slice(0,7)).filter(m=>m.length===7))].sort().reverse()
-      .map(m=>{const [y,mm]=m.split('-');return `<option value="${m}">${MESES[+mm-1]} ${y}</option>`;}).join('');
-  $('filComMes').innerHTML = mesesOpt(S.data.compras||[]);
-  $('filAsiMes').innerHTML = mesesOpt(S.data.asistencia||[]);
+  initPeriodos();
 }
 
 /* ================= DASHBOARD ================= */
 function renderDashboard(){
   if(!S.data) return;
-  const year = $('dashYear').value || String(new Date().getFullYear());
-  const peds = (S.data.pedidos||[]).filter(p=>String(p.Fecha).startsWith(year));
-  const coms = (S.data.compras||[]).filter(c=>String(c.Fecha).startsWith(year));
+  const peds = (S.data.pedidos||[]).filter(p=>enPeriodo('dash', p.Fecha));
+  const coms = (S.data.compras||[]).filter(c=>enPeriodo('dash', c.Fecha));
+  const asis = (S.data.asistencia||[]).filter(a=>enPeriodo('dash', a.Fecha));
 
   const ventas = peds.reduce((a,p)=>a+Number(p.TotalNeto||0),0);
   const compras = coms.reduce((a,c)=>a+Number(c.Neto||0),0);
   const m3 = peds.reduce((a,p)=>a+Number(p.TotalM3||0),0);
-  // POR COBRAR = facturas HENKO (las que emite el cliente) no pagadas ni anuladas
+  const margen = ventas - compras;
+  const manoObra = asis.reduce((s,a)=>s+Number(a.ValorDia||0),0);
+  const arriendo = coms.filter(c=>c.Clasificacion==='Arriendo').reduce((s,c)=>s+Number(c.Neto||0),0);
+  // POR COBRAR = facturas HENKO (las que emite el cliente) no pagadas ni anuladas — foto de hoy
   const porCobrar = (S.data.facturas||[])
     .filter(f=>f.Tipo==='Henko' && !/pagad|anulad/i.test(String(f.Estado)))
     .reduce((a,f)=>a+Number(f.Total||0),0);
@@ -690,28 +798,105 @@ function renderDashboard(){
 
   $('kVentas').textContent = CLP(ventas);
   $('kCompras').textContent = CLP(compras);
-  $('kMargen').textContent = CLP(ventas-compras);
-  $('kMargen').style.color = ventas-compras>=0 ? 'var(--green)':'var(--red)';
+  $('kMargen').textContent = CLP(margen);
+  $('kMargen').style.color = margen>=0 ? 'var(--green)':'var(--red)';
+  $('kMargenSub').textContent = ventas>0 ? (margen/ventas*100).toFixed(1).replace('.',',')+'% sobre las ventas del período' : 'Ventas − compras y gastos';
   $('kM3').textContent = M3(m3);
+  $('kPm3').textContent = m3>0 ? CLP(ventas/m3) : '—';
+  $('kNPed').textContent = peds.length;
+  $('kManoObra').textContent = CLP(manoObra);
+  $('kManoObraSub').textContent = asis.length + ' días trabajados en el período (pagados o no)';
+  $('kArriendo').textContent = CLP(arriendo);
   $('kPorCobrar').textContent = CLP(porCobrar);
   $('kSueldosPend').textContent = CLP(sueldosPend);
 
-  const vMes = Array(12).fill(0), cMes = Array(12).fill(0);
-  peds.forEach(p=>{ const m=+String(p.Fecha).slice(5,7)-1; if(m>=0) vMes[m]+=Number(p.TotalNeto||0); });
-  coms.forEach(c=>{ const m=+String(c.Fecha).slice(5,7)-1; if(m>=0) cMes[m]+=Number(c.Neto||0); });
+  // --- Serie temporal adaptativa: por mes, o por día si el período es corto ---
+  const r = rangoPeriodo('dash');
+  const porDia = r && ((new Date(r.h) - new Date(r.d)) / 86400000) <= 62;
+  const keyOf = f => porDia ? String(f).slice(0,10) : String(f).slice(0,7);
+  const labelOf = k => porDia ? (k.slice(8,10)+' '+MESES[+k.slice(5,7)-1]) : (MESES[+k.slice(5,7)-1]+' '+k.slice(2,4));
+  const vSer={}, cSer={};
+  peds.forEach(p=>{ const k=keyOf(p.Fecha); if(k.length>=7) vSer[k]=(vSer[k]||0)+Number(p.TotalNeto||0); });
+  coms.forEach(c=>{ const k=keyOf(c.Fecha); if(k.length>=7) cSer[k]=(cSer[k]||0)+Number(c.Neto||0); });
+  const keys = [...new Set(Object.keys(vSer).concat(Object.keys(cSer)))].sort();
   chart('chVsC','bar',{
-    labels:MESES,
+    labels: keys.map(labelOf),
     datasets:[
-      {label:'Ventas',data:vMes,backgroundColor:'#e0a94f',borderRadius:4},
-      {label:'Compras y gastos',data:cMes,backgroundColor:'#8fb8a8',borderRadius:4}
+      {label:'Ventas', data:keys.map(k=>vSer[k]||0), backgroundColor:'#e0a94f', borderRadius:4},
+      {label:'Compras y gastos', data:keys.map(k=>cSer[k]||0), backgroundColor:'#8fb8a8', borderRadius:4},
+      {type:'line', label:'Margen', data:keys.map(k=>(vSer[k]||0)-(cSer[k]||0)), borderColor:'#8fca8f', backgroundColor:'#8fca8f', tension:.3, pointRadius:3}
     ]
+  },{
+    plugins:{
+      legend:{labels:{color:'#9aa4ac',boxWidth:12}},
+      datalabels:{
+        display: ctx => ctx.dataset.type!=='line' && Math.abs(ctx.dataset.data[ctx.dataIndex]||0) > 0,
+        color:'#ece7dc', font:{size:10,weight:'700'}, anchor:'end', align:'end', clamp:true,
+        formatter: fmtCorto
+      }
+    }
   });
 
+  // --- Doughnut clasificación con $ y % ---
   const porClas = {};
   coms.forEach(c=>{ const k=c.Clasificacion||'Otro'; porClas[k]=(porClas[k]||0)+Number(c.Neto||0); });
+  const clasKeys = Object.keys(porClas).filter(k=>porClas[k]>0);
   chart('chClas','doughnut',{
-    labels:Object.keys(porClas),
-    datasets:[{data:Object.values(porClas),backgroundColor:['#e0a94f','#8fb8a8','#e07a6a','#7d97b8','#b9832f','#8fca8f','#9aa4ac'],borderWidth:0}]
+    labels: clasKeys,
+    datasets:[{data:clasKeys.map(k=>porClas[k]), backgroundColor:['#e0a94f','#8fb8a8','#e07a6a','#7d97b8','#b9832f','#8fca8f','#9aa4ac'], borderWidth:0}]
+  },{
+    scales:{},
+    plugins:{
+      legend:{position:'right', labels:{color:'#9aa4ac', boxWidth:12}},
+      datalabels:{
+        display: ctx => { const d=ctx.dataset.data; const t=d.reduce((a,b)=>a+b,0); return t>0 && d[ctx.dataIndex]/t >= .06; },
+        color:'#fff', textStrokeColor:'rgba(0,0,0,.6)', textStrokeWidth:3, font:{size:10,weight:'700'}, textAlign:'center',
+        formatter:(v,ctx)=>{ const t=ctx.dataset.data.reduce((a,b)=>a+b,0); return [fmtCorto(v), Math.round(v/t*100)+'%']; }
+      }
+    }
+  });
+
+  // --- Top modelos por venta ---
+  const pedSet = new Set(peds.map(p=>String(p.ID)));
+  const porModelo = {};
+  (S.data.items||[]).forEach(i=>{
+    if(!pedSet.has(String(i.PedidoID))) return;
+    const k = String(i.Modelo||'').trim() || '(sin modelo)';
+    porModelo[k]=(porModelo[k]||0)+Number(i.ValorTotal||0);
+  });
+  const top = Object.entries(porModelo).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  chart('chModelos','bar',{
+    labels: top.map(t=>t[0]),
+    datasets:[{data:top.map(t=>t[1]), backgroundColor:'#e0a94f', borderRadius:4}]
+  },{
+    indexAxis:'y',
+    scales:{
+      x:{ticks:{color:'#9aa4ac',callback:v=>fmtCorto(v)},grid:{color:'#232a30'}},
+      y:{ticks:{color:'#9aa4ac'},grid:{display:false}}
+    },
+    plugins:{
+      legend:{display:false},
+      datalabels:{display:true, color:'#ece7dc', anchor:'end', align:'start', clamp:true, font:{size:10,weight:'700'}, formatter:fmtCorto}
+    }
+  });
+
+  // --- Mano de obra por trabajador ---
+  const porTrab = {};
+  asis.forEach(a=>{ const k=a.Trabajador||'—'; (porTrab[k]=porTrab[k]||{d:0,v:0}); porTrab[k].d++; porTrab[k].v+=Number(a.ValorDia||0); });
+  const tKeys = Object.keys(porTrab);
+  const dias = tKeys.map(k=>porTrab[k].d);
+  chart('chMano','bar',{
+    labels: tKeys,
+    datasets:[{label:'Costo mano de obra', data:tKeys.map(k=>porTrab[k].v), backgroundColor:'#8fb8a8', borderRadius:4}]
+  },{
+    plugins:{
+      legend:{display:false},
+      datalabels:{
+        display: ctx => (ctx.dataset.data[ctx.dataIndex]||0) > 0,
+        color:'#ece7dc', anchor:'end', align:'end', clamp:true, font:{size:10,weight:'700'},
+        formatter:(v,ctx)=> fmtCorto(v)+' · '+dias[ctx.dataIndex]+'d'
+      }
+    }
   });
 
   const pend = (S.data.facturas||[]).filter(f=>!/pagad|anulad/i.test(String(f.Estado)));
@@ -721,19 +906,22 @@ function renderDashboard(){
   ) : '<div class="empty">Sin facturas pendientes 🎉</div>';
 }
 
-function chart(id, type, data){
+function chart(id, type, data, extra){
   if(S.charts[id]) S.charts[id].destroy();
-  S.charts[id] = new Chart($(id), {
-    type, data,
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{labels:{color:'#9aa4ac',boxWidth:12}} },
-      scales: type==='bar' ? {
-        x:{ticks:{color:'#9aa4ac'},grid:{color:'#232a30'}},
-        y:{ticks:{color:'#9aa4ac',callback:v=>'$'+(v/1e6).toFixed(0)+'M'},grid:{color:'#232a30'}}
-      } : {}
+  extra = extra || {};
+  const baseScales = (type==='bar'||type==='line') ? {
+    x:{ticks:{color:'#9aa4ac'},grid:{color:'#232a30'}},
+    y:{ticks:{color:'#9aa4ac',callback:v=>fmtCorto(v)},grid:{color:'#232a30'}}
+  } : {};
+  const options = Object.assign(
+    { responsive:true, maintainAspectRatio:false },
+    extra.indexAxis ? {indexAxis:extra.indexAxis} : {},
+    {
+      plugins: Object.assign({ legend:{labels:{color:'#9aa4ac',boxWidth:12}}, datalabels:{display:false} }, extra.plugins||{}),
+      scales: extra.scales!==undefined ? extra.scales : baseScales
     }
-  });
+  );
+  S.charts[id] = new Chart($(id), { type, data, options });
 }
 
 /* ================= PEDIDOS ================= */
@@ -900,6 +1088,7 @@ function renderPedidos(){
   (S.data.items||[]).forEach(i=>{ (itemsPorPedido[i.PedidoID]=itemsPorPedido[i.PedidoID]||[]).push(i); });
 
   let peds = (S.data.pedidos||[]).slice().sort((a,b)=>String(b.Fecha).localeCompare(String(a.Fecha)));
+  peds = peds.filter(p=>enPeriodo('ped', p.Fecha));
   if(est) peds = peds.filter(p=>p.Estado===est);
   if(txt) peds = peds.filter(p=>{
     const its = itemsPorPedido[p.ID]||[];
@@ -1026,6 +1215,7 @@ function renderFacturas(){
   if(!S.data) return;
   const tipo = $('filFacTipo').value, est = $('filFacEstado').value;
   let fs = (S.data.facturas||[]).slice().sort((a,b)=>String(b.Fecha).localeCompare(String(a.Fecha)));
+  fs = fs.filter(f=>enPeriodo('fac', f.Fecha));
   if(tipo) fs = fs.filter(f=>f.Tipo===tipo);
   if(est) fs = fs.filter(f=>f.Estado===est);
   $('listaFacturas').innerHTML = fs.length ? tabla(
@@ -1218,10 +1408,10 @@ async function guardarCompra(){
 
 function renderCompras(){
   if(!S.data) return;
-  const txt=($('filComTxt').value||'').toLowerCase(), clas=$('filComClas').value, mes=$('filComMes').value;
+  const txt=($('filComTxt').value||'').toLowerCase(), clas=$('filComClas').value;
   let cs = (S.data.compras||[]).slice().sort((a,b)=>String(b.Fecha).localeCompare(String(a.Fecha)));
+  cs = cs.filter(c=>enPeriodo('com', c.Fecha));
   if(clas) cs = cs.filter(c=>c.Clasificacion===clas);
-  if(mes) cs = cs.filter(c=>String(c.Fecha).startsWith(mes));
   if(txt) cs = cs.filter(c=>(c.Proveedor+' '+c.Comentario+' '+c.Asignacion+' '+(c.CuentaPago||'')).toLowerCase().includes(txt));
   const totalNeto = cs.reduce((a,c)=>a+Number(c.Neto||0),0);
   const nDet = {};
@@ -1399,10 +1589,10 @@ async function guardarAsistencia(){
 
 function renderAsistencia(){
   if(!S.data) return;
-  const trab=$('filAsiTrab').value, mes=$('filAsiMes').value, pag=$('filAsiPag').value;
+  const trab=$('filAsiTrab').value, pag=$('filAsiPag').value;
   let as = (S.data.asistencia||[]).slice().sort((a,b)=>String(b.Fecha).localeCompare(String(a.Fecha)));
+  as = as.filter(a=>enPeriodo('asi', a.Fecha));
   if(trab) as = as.filter(a=>a.Trabajador===trab);
-  if(mes) as = as.filter(a=>String(a.Fecha).startsWith(mes));
   if(pag) as = as.filter(a=>String(a.Pagado).toUpperCase()===pag);
   const total = as.reduce((s,a)=>s+Number(a.ValorDia||0),0);
   $('listaAsistencia').innerHTML = as.length ?
@@ -1600,14 +1790,6 @@ function irReporte(tipo){
   renderReporte();
 }
 
-function filtroFechaRep(f){
-  const y=$('repAnio').value, m=$('repMes').value;
-  f = String(f||'');
-  if(y && !f.startsWith(y)) return false;
-  if(m && f.slice(5,7)!==m) return false;
-  return true;
-}
-
 function datosReporte(){
   const tipo=$('repTipo').value, txt=($('repTxt').value||'').toLowerCase();
   const pasaTxt = s => !txt || String(s).toLowerCase().includes(txt);
@@ -1615,7 +1797,7 @@ function datosReporte(){
   if(tipo==='ventas'){
     const peds={}; (S.data.pedidos||[]).forEach(p=>peds[p.ID]=p);
     const rows=(S.data.items||[]).map(i=>({p:peds[i.PedidoID]||{}, i}))
-      .filter(x=>filtroFechaRep(x.p.Fecha))
+      .filter(x=>enPeriodo('rep', x.p.Fecha))
       .filter(x=>pasaTxt([x.p.Numero,x.p.Cliente,x.i.Modelo,x.p.Estado].join(' ')));
     rows.sort((a,b)=>String(b.p.Fecha).localeCompare(String(a.p.Fecha)));
     const exp = rows.map(x=>({ Pedido:x.p.Numero, Cliente:x.p.Cliente, Fecha:x.p.Fecha, Estado:x.p.Estado,
@@ -1634,7 +1816,7 @@ function datosReporte(){
   }
 
   if(tipo==='compras'){
-    const rows=(S.data.compras||[]).filter(c=>filtroFechaRep(c.Fecha))
+    const rows=(S.data.compras||[]).filter(c=>enPeriodo('rep', c.Fecha))
       .filter(c=>pasaTxt([c.Proveedor,c.Clasificacion,c.Asignacion,c.Comentario,c.CuentaPago].join(' ')))
       .sort((a,b)=>String(b.Fecha).localeCompare(String(a.Fecha)));
     const exp = rows.map(c=>({ Fecha:c.Fecha, Clasificacion:c.Clasificacion, Asignacion:c.Asignacion,
@@ -1651,7 +1833,7 @@ function datosReporte(){
   }
 
   if(tipo==='facturas'){
-    const rows=(S.data.facturas||[]).filter(f=>filtroFechaRep(f.Fecha))
+    const rows=(S.data.facturas||[]).filter(f=>enPeriodo('rep', f.Fecha))
       .filter(f=>pasaTxt([f.Tipo,f.Numero,f.Detalle,f.Pedidos,f.Estado,f.FacturaAdebo].join(' ')))
       .sort((a,b)=>String(b.Fecha).localeCompare(String(a.Fecha)));
     const exp = rows.map(f=>({ Tipo:f.Tipo, 'N°':f.Numero, Fecha:f.Fecha, Detalle:f.Detalle,
@@ -1668,7 +1850,7 @@ function datosReporte(){
   }
 
   // asistencia
-  const rows=(S.data.asistencia||[]).filter(a=>filtroFechaRep(a.Fecha))
+  const rows=(S.data.asistencia||[]).filter(a=>enPeriodo('rep', a.Fecha))
     .filter(a=>pasaTxt([a.Trabajador,a.TipoDia,a.Observacion].join(' ')))
     .sort((a,b)=>String(b.Fecha).localeCompare(String(a.Fecha)));
   const exp = rows.map(a=>({ Fecha:a.Fecha, Trabajador:a.Trabajador, 'Tipo de día':a.TipoDia,
