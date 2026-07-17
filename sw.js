@@ -1,15 +1,14 @@
 /* Service Worker — Aplicación de Gestión Henko */
-const CACHE = 'henko-v1';
+const CACHE = 'henko-v2';
 const ASSETS = [
   '.',
   'index.html',
   'manifest.json',
   'logo.png',
-  'icons/icon-192.png',
-  'icons/icon-512.png',
-  'icons/icon-512-maskable.png',
-  'icons/apple-touch-icon.png',
-  'icons/favicon.png'
+  'icon-192.png',
+  'icon-512.png',
+  'icon-512-maskable.png',
+  'apple-touch-icon.png'
 ];
 
 self.addEventListener('install', e => {
