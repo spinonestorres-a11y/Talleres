@@ -1,0 +1,17 @@
+{
+  "name": "Aplicación de Gestión Henko",
+  "short_name": "Henko",
+  "description": "Gestión de ventas, compras, gastos y producción de bloques de terciado",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#14171a",
+  "theme_color": "#14171a",
+  "lang": "es-CL",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

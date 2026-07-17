@@ -4,7 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#14171a">
-<title>Gestión Bloques de Terciado</title>
+<title>Aplicación de Gestión Henko</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icons/favicon.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Henko">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
@@ -121,11 +128,11 @@
 <!-- ================= LOGIN ================= -->
 <div id="loginScreen">
   <div class="login-card">
-    <div class="brand-mark">
-      <svg width="42" height="42" viewBox="0 0 42 42"><rect x="3" y="6" width="36" height="7" rx="2" fill="#e0a94f"/><rect x="3" y="17" width="36" height="7" rx="2" fill="#b9832f"/><rect x="3" y="28" width="36" height="7" rx="2" fill="#8a6224"/></svg>
-      <div><div class="t1">Gestión Bloques</div><div class="t2">Terciado · CNC</div></div>
+    <div class="brand-mark" style="flex-direction:column;text-align:center;gap:14px">
+      <img src="logo.png" alt="Henko" style="width:110px;height:110px;object-fit:contain">
+      <div><div class="t1">Aplicación de Gestión Henko</div><div class="t2">Bloques de terciado · CNC</div></div>
     </div>
-    <p class="muted">Registro de ventas, compras, gastos y análisis de la operación.</p>
+    <p class="muted" style="text-align:center">Registro de ventas, compras, gastos y análisis de la operación.</p>
     <form id="loginForm">
       <div class="field"><label>Usuario</label><input id="loginUser" autocomplete="username" required></div>
       <div class="field"><label>Contraseña</label><input id="loginPass" type="password" autocomplete="current-password" required></div>
@@ -138,8 +145,8 @@
 <!-- ================= APP ================= -->
 <div id="app">
   <header class="top">
-    <svg width="30" height="30" viewBox="0 0 42 42"><rect x="3" y="6" width="36" height="7" rx="2" fill="#e0a94f"/><rect x="3" y="17" width="36" height="7" rx="2" fill="#b9832f"/><rect x="3" y="28" width="36" height="7" rx="2" fill="#8a6224"/></svg>
-    <h1 style="font-size:16px">Gestión Bloques</h1>
+    <img src="logo.png" alt="Henko" style="width:34px;height:34px;object-fit:contain">
+    <h1 style="font-size:16px">Gestión Henko</h1>
     <div class="who"><b id="whoName"></b><span id="whoRol"></span> · <a href="#" id="logoutLink" style="color:var(--amber)">Salir</a></div>
   </header>
 
@@ -1909,6 +1916,13 @@ document.addEventListener('DOMContentLoaded', ()=>{
   ['aFecha','arFecha'].forEach(i=>{ if($(i)) $(i).value = hoyISO(); });
   autoTipoDia && $('aFecha').value && setTimeout(()=>{ try{autoTipoDia()}catch(e){} },0);
 });
+
+/* PWA: service worker (permite instalar la app en el celular) */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
 </script>
 </body>
 </html>
