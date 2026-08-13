@@ -135,6 +135,11 @@
   .trab-row input[type=time]{width:105px}
   .trab-row input[type=number]{width:115px;text-align:right}
   .trab-row.off{opacity:.45}
+  #gaGrid .cal-cell{min-height:64px;align-items:flex-start;justify-content:flex-start}
+  #gaGrid .cal-cell.on{background:rgba(224,169,79,.16);border-color:var(--amber)}
+  #gaGrid .cal-cell.pagado{background:rgba(143,202,143,.12);border-color:var(--green);cursor:not-allowed}
+  #gaGrid .ga-val{font-family:var(--mono);font-size:10.5px;color:var(--amber)}
+  #gaGrid .cal-cell.pagado .ga-val{color:var(--green)}
   @media(max-width:640px){
     .cal-cell{min-height:62px;padding:4px}
     .cal-nombres{display:none}
@@ -392,9 +397,39 @@
     <section class="view" id="view-gastos">
       <div class="view-head"><h2>Gastos generales</h2></div>
       <div class="subtabs" id="gastosTabs">
-        <button data-sub="sueldos" class="active">Sueldos pendientes</button>
+        <button data-sub="asistencia" class="active">Asistencia por trabajador</button>
+        <button data-sub="sueldos">Sueldos pendientes</button>
         <button data-sub="trabajadores">Trabajadores y cargos</button>
         <button data-sub="arriendo">Arriendo</button>
+      </div>
+
+      <!-- Asistencia por trabajador -->
+      <div class="subview active" id="sub-asistencia">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              <label class="muted" style="font-size:12px">Trabajador</label>
+              <select id="gaTrab" onchange="cambiarTrabAsi()" style="width:auto;min-width:180px"></select>
+            </div>
+            <div class="cal-nav">
+              <button class="btn ghost small" onclick="mesAsiTrab(-1)">‹</button>
+              <b id="gaTitulo">—</b>
+              <button class="btn ghost small" onclick="mesAsiTrab(1)">›</button>
+            </div>
+          </div>
+          <p class="muted" style="margin:12px 0">Toca los días que trabajó para marcarlos o desmarcarlos. El valor se calcula según su cargo y el tipo de día. Los días ya pagados salen bloqueados 🔒.</p>
+          <div class="cal-head"><div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div></div>
+          <div class="cal-grid" id="gaGrid"></div>
+          <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;align-items:center">
+            <button class="btn ghost small" onclick="marcarHabilesAsi()">Marcar lunes a viernes</button>
+            <button class="btn ghost small" onclick="limpiarMesAsi()">Desmarcar todo</button>
+            <span class="muted" style="margin-left:auto" id="gaResumen"></span>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+            <button class="btn" id="gaGuardarBtn" onclick="guardarMesAsi()">Guardar cambios del mes</button>
+            <button class="btn ghost" onclick="renderAsistenciaTrab()">Descartar cambios</button>
+          </div>
+        </div>
       </div>
 
       <!-- Sueldos -->
@@ -561,7 +596,8 @@ const IVA = 0.19;
 let S = { token:null, nombre:'', rol:'', usuario:'', data:null, charts:{},
           editPedidoId:null, editFacturaId:null, editCompraId:null, editProvId:null,
           editTrabId:null, editCargoId:null, fotoBase64:null,
-          calMes:null, calDiaSel:null };
+          calMes:null, calDiaSel:null,
+          gaMes:null, gaSel:null, gaOriginal:null };
 
 /* ================= UTILIDADES ================= */
 const $ = id => document.getElementById(id);
@@ -784,6 +820,7 @@ $('gastosTabs').addEventListener('click', ev=>{
   document.querySelectorAll('#gastosTabs button').forEach(x=>x.classList.toggle('active', x===b));
   document.querySelectorAll('#view-gastos .subview').forEach(v=>v.classList.remove('active'));
   $('sub-'+b.dataset.sub).classList.add('active');
+  if(b.dataset.sub==='asistencia') renderAsistenciaTrab();
 });
 
 function renderTodo(){
@@ -798,6 +835,7 @@ function renderTodo(){
   renderTrabajadores();
   renderCargos();
   renderCalendario();
+  renderAsistenciaTrab();
   renderSueldos();
   renderArriendos();
   renderReporte();
@@ -1805,6 +1843,160 @@ async function guardarDiaCal(){
     await cargarDatos();
   }catch(e){ toast(e.message,'err'); }
   btn.disabled = false;
+}
+
+/* ========== ASISTENCIA POR TRABAJADOR (vista mensual de una persona) ========== */
+function mesAsiTrab(delta){
+  const [y,m] = S.gaMes.split('-').map(Number);
+  const d = new Date(y, m-1+delta, 1);
+  S.gaMes = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  renderAsistenciaTrab();
+}
+
+function cambiarTrabAsi(){ renderAsistenciaTrab(); }
+
+function renderAsistenciaTrab(){
+  if(!S.data) return;
+  if(!S.gaMes) S.gaMes = hoyISO().slice(0,7);
+
+  // Selector de trabajadores activos
+  const trabs = (S.data.trabajadores||[]).filter(t=>String(t.Activo).toUpperCase()!=='NO');
+  const sel = $('gaTrab');
+  const prev = sel.value;
+  sel.innerHTML = trabs.map(t=>`<option value="${t.ID}">${esc(t.Nombre)}</option>`).join('');
+  if(prev && trabs.some(t=>String(t.ID)===prev)) sel.value = prev;
+
+  const [y,m] = S.gaMes.split('-').map(Number);
+  $('gaTitulo').textContent = `${MESES_LARGO[m-1]} ${y}`;
+
+  if(!trabs.length){
+    $('gaGrid').innerHTML = '';
+    $('gaResumen').textContent = '';
+    $('gaGrid').innerHTML = '<div class="empty" style="grid-column:1/-1">Primero crea los cargos y trabajadores en la pestaña "Trabajadores y cargos".</div>';
+    return;
+  }
+
+  const trab = trabs.find(t=>String(t.ID)===sel.value) || trabs[0];
+  // Estado local: días marcados de este trabajador en este mes
+  S.gaSel = new Set();
+  S.gaOriginal = new Set();
+  (S.data.asistencia||[]).forEach(a=>{
+    const f = String(a.Fecha).slice(0,10);
+    if(String(a.TrabajadorID)===String(trab.ID) && f.slice(0,7)===S.gaMes){
+      S.gaSel.add(f); S.gaOriginal.add(f);
+    }
+  });
+  pintarGridAsi(trab);
+}
+
+function pintarGridAsi(trab){
+  const [y,m] = S.gaMes.split('-').map(Number);
+  const offset = (new Date(y,m-1,1).getDay()+6)%7;
+  const nDias = new Date(y, m, 0).getDate();
+  const hoy = hoyISO();
+
+  let html = '';
+  for(let i=0;i<offset;i++) html += '<div class="cal-cell vacio"></div>';
+  for(let d=1; d<=nDias; d++){
+    const fecha = `${S.gaMes}-${String(d).padStart(2,'0')}`;
+    const reg = (S.data.asistencia||[]).find(a=>String(a.TrabajadorID)===String(trab.ID) && String(a.Fecha).slice(0,10)===fecha);
+    const pagado = reg && String(reg.Pagado).toUpperCase()==='SI';
+    const tipo = reg ? (reg.TipoDia||tipoDiaDe(fecha)) : tipoDiaDe(fecha);
+    const marcado = S.gaSel.has(fecha);
+    const valor = reg ? Math.round(Number(reg.ValorDia)||0) : valorCargo(trab, tipo);
+    const cls = ['cal-cell'];
+    if(marcado) cls.push('on');
+    if(pagado) cls.push('pagado');
+    if(fecha===hoy) cls.push('hoy');
+    if(tipo==='Feriado') cls.push('feriado');
+    else if(tipo==='Sábado'||tipo==='Domingo') cls.push('finde');
+    html += `<button class="${cls.join(' ')}" ${pagado?'disabled title="Día pagado: elimina su pago en Sueldos para modificarlo"':`onclick="toggleDiaAsi('${fecha}')"`}>
+      <span class="cal-num">${d}${pagado?' 🔒':''}</span>
+      ${marcado?`<span class="ga-val">${CLP(valor)}</span>`:''}
+    </button>`;
+  }
+  $('gaGrid').innerHTML = html;
+
+  // Resumen del mes para este trabajador
+  let total = 0;
+  S.gaSel.forEach(f=>{
+    const reg = (S.data.asistencia||[]).find(a=>String(a.TrabajadorID)===String(trab.ID) && String(a.Fecha).slice(0,10)===f);
+    const tipo = reg ? (reg.TipoDia||tipoDiaDe(f)) : tipoDiaDe(f);
+    total += reg ? Math.round(Number(reg.ValorDia)||0) : valorCargo(trab, tipo);
+  });
+  const cambios = [...S.gaSel].filter(f=>!S.gaOriginal.has(f)).length + [...S.gaOriginal].filter(f=>!S.gaSel.has(f)).length;
+  $('gaResumen').innerHTML = `<b>${S.gaSel.size}</b> días · <b class="num">${CLP(total)}</b>` +
+    (cambios ? ` · <span style="color:var(--amber)">${cambios} cambio${cambios>1?'s':''} sin guardar</span>` : '');
+}
+
+function toggleDiaAsi(fecha){
+  if(S.gaSel.has(fecha)) S.gaSel.delete(fecha); else S.gaSel.add(fecha);
+  const trab = (S.data.trabajadores||[]).find(t=>String(t.ID)===$('gaTrab').value);
+  if(trab) pintarGridAsi(trab);
+}
+
+function marcarHabilesAsi(){
+  const [y,m] = S.gaMes.split('-').map(Number);
+  const nDias = new Date(y, m, 0).getDate();
+  for(let d=1; d<=nDias; d++){
+    const fecha = `${S.gaMes}-${String(d).padStart(2,'0')}`;
+    if(tipoDiaDe(fecha)==='Normal') S.gaSel.add(fecha);
+  }
+  const trab = (S.data.trabajadores||[]).find(t=>String(t.ID)===$('gaTrab').value);
+  if(trab) pintarGridAsi(trab);
+}
+
+function limpiarMesAsi(){
+  // No desmarca los pagados (están bloqueados)
+  const trab = (S.data.trabajadores||[]).find(t=>String(t.ID)===$('gaTrab').value);
+  const pagados = new Set((S.data.asistencia||[])
+    .filter(a=>String(a.TrabajadorID)===String(trab.ID) && String(a.Pagado).toUpperCase()==='SI')
+    .map(a=>String(a.Fecha).slice(0,10)));
+  S.gaSel = new Set([...S.gaSel].filter(f=>pagados.has(f)));
+  pintarGridAsi(trab);
+}
+
+/** Guarda solo los días que cambiaron, usando guardarDia (respeta a los demás trabajadores y la bitácora) */
+async function guardarMesAsi(){
+  const trab = (S.data.trabajadores||[]).find(t=>String(t.ID)===$('gaTrab').value);
+  if(!trab) return;
+  const agregar = [...S.gaSel].filter(f=>!S.gaOriginal.has(f));
+  const quitar  = [...S.gaOriginal].filter(f=>!S.gaSel.has(f));
+  const fechas = agregar.concat(quitar).sort();
+  if(!fechas.length) return toast('No hay cambios que guardar','err');
+
+  const btn = $('gaGuardarBtn'); btn.disabled = true;
+  const textoOrig = btn.textContent;
+  let ok = 0;
+  try{
+    for(let i=0;i<fechas.length;i++){
+      const fecha = fechas[i];
+      btn.textContent = `Guardando ${i+1} de ${fechas.length}…`;
+      // Reconstruir el día completo: los demás trabajadores se mantienen tal cual
+      const delDia = (S.data.asistencia||[]).filter(a=>String(a.Fecha).slice(0,10)===fecha);
+      const asistentes = delDia
+        .filter(a=>String(a.TrabajadorID)!==String(trab.ID))
+        .map(a=>({ trabajadorId:a.TrabajadorID, trabajador:a.Trabajador, tipoDia:a.TipoDia,
+                   horaEntrada:a.HoraEntrada||'', horaSalida:a.HoraSalida||'',
+                   valorDia:Number(a.ValorDia)||0, observacion:a.Observacion||'' }));
+      if(S.gaSel.has(fecha)){
+        const tipo = tipoDiaDe(fecha);
+        asistentes.push({ trabajadorId:trab.ID, trabajador:trab.Nombre, tipoDia:tipo,
+                          horaEntrada:'08:00', horaSalida:'18:00',
+                          valorDia:valorCargo(trab, tipo), observacion:'' });
+      }
+      const bit = bitacoraDe(fecha); // preservar la bitácora del día
+      await api({ action:'guardarDia', fecha, asistentes, bitacora: bit?bit.Texto:'' });
+      ok++;
+    }
+    toast(`${ok} día${ok>1?'s':''} actualizado${ok>1?'s':''} para ${trab.Nombre} ✔`,'ok');
+    await cargarDatos();
+  }catch(e){
+    toast(`Se guardaron ${ok} de ${fechas.length} días. ${e.message}`,'err');
+    await cargarDatos();
+  }
+  btn.disabled = false;
+  btn.textContent = textoOrig;
 }
 
 /* ================= GASTOS: SUELDOS ================= */
