@@ -113,6 +113,34 @@
   .subtabs button.active{color:var(--amber);border-color:var(--amber);background:rgba(224,169,79,.08)}
   .subview{display:none}
   .subview.active{display:block}
+
+  /* ---- Calendario ---- */
+  .cal-nav{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .cal-nav b{min-width:150px;text-align:center;font-size:15px;text-transform:capitalize}
+  .cal-head,.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+  .cal-head div{text-align:center;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim);padding-bottom:6px}
+  .cal-cell{background:var(--panel2);border:1px solid var(--line);border-radius:8px;min-height:86px;padding:6px;cursor:pointer;transition:border-color .12s,background .12s;display:flex;flex-direction:column;gap:4px;text-align:left;font-family:inherit;color:inherit}
+  .cal-cell:hover{border-color:var(--amber)}
+  .cal-cell.vacio{background:transparent;border-color:transparent;cursor:default}
+  .cal-cell.hoy{border-color:var(--amber);box-shadow:inset 0 0 0 1px var(--amber)}
+  .cal-cell.sel{background:rgba(224,169,79,.14);border-color:var(--amber)}
+  .cal-cell.finde .cal-num{color:var(--sage)}
+  .cal-cell.feriado .cal-num{color:var(--red)}
+  .cal-num{font-family:var(--mono);font-size:13px;font-weight:700}
+  .cal-chip{font-size:10.5px;background:rgba(224,169,79,.16);color:var(--amber);border-radius:5px;padding:1px 5px;display:inline-block;font-weight:700}
+  .cal-nombres{font-size:10px;color:var(--ink-dim);line-height:1.35;overflow:hidden}
+  .cal-bit{font-size:11px;color:var(--sage)}
+  .cal-leyenda{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--ink-dim);margin-top:12px}
+  .trab-row{display:grid;grid-template-columns:auto 1fr auto auto auto;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
+  .trab-row input[type=time]{width:105px}
+  .trab-row input[type=number]{width:115px;text-align:right}
+  .trab-row.off{opacity:.45}
+  @media(max-width:640px){
+    .cal-cell{min-height:62px;padding:4px}
+    .cal-nombres{display:none}
+    .trab-row{grid-template-columns:auto 1fr;gap:8px}
+    .trab-row .horas{grid-column:2;display:flex;gap:8px}
+  }
   @media(max-width:640px){main{padding:14px 10px 60px}nav.tabs{top:53px}table{min-width:560px}}
   @media(max-width:480px){
     .g3,.g4,.g2{grid-template-columns:1fr}
@@ -155,6 +183,7 @@
     <button data-view="pedidos">Pedidos</button>
     <button data-view="facturas">Facturas</button>
     <button data-view="compras">Compras</button>
+    <button data-view="calendario">Calendario</button>
     <button data-view="gastos">Gastos</button>
     <button data-view="reportes">Reportes</button>
     <button data-view="proveedores">Proveedores</button>
@@ -324,44 +353,52 @@
       <div id="listaCompras"></div>
     </section>
 
+    <!-- ========== CALENDARIO ========== -->
+    <section class="view" id="view-calendario">
+      <div class="view-head">
+        <h2>Calendario y bitácora</h2>
+        <div class="cal-nav">
+          <button class="btn ghost small" onclick="mesCal(-1)">‹</button>
+          <b id="calTitulo">—</b>
+          <button class="btn ghost small" onclick="mesCal(1)">›</button>
+          <button class="btn ghost small" onclick="irHoyCal()">Hoy</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="cal-head"><div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div></div>
+        <div class="cal-grid" id="calGrid"></div>
+        <div class="cal-leyenda">
+          <span><span class="cal-chip">3</span> personas que asistieron</span>
+          <span>📝 tiene bitácora</span>
+          <span style="color:var(--sage)">■ fin de semana</span>
+          <span style="color:var(--red)">■ feriado</span>
+        </div>
+      </div>
+
+      <div class="kpis" id="calResumen"></div>
+
+      <div class="card" id="calPanel">
+        <div class="empty">Toca un día del calendario para registrar quién asistió y qué se hizo.</div>
+      </div>
+
+      <div class="card">
+        <h3 style="font-size:14px;margin-bottom:12px">Bitácora del mes</h3>
+        <div id="calBitacoras"></div>
+      </div>
+    </section>
+
     <!-- ========== GASTOS ========== -->
     <section class="view" id="view-gastos">
       <div class="view-head"><h2>Gastos generales</h2></div>
       <div class="subtabs" id="gastosTabs">
-        <button data-sub="asistencia" class="active">Asistencia</button>
-        <button data-sub="sueldos">Sueldos pendientes</button>
+        <button data-sub="sueldos" class="active">Sueldos pendientes</button>
         <button data-sub="trabajadores">Trabajadores y cargos</button>
         <button data-sub="arriendo">Arriendo</button>
       </div>
 
-      <!-- Asistencia -->
-      <div class="subview active" id="sub-asistencia">
-        <div class="card">
-          <h3 style="font-size:14px;margin-bottom:12px">Registrar día trabajado</h3>
-          <div class="grid g3">
-            <div class="field"><label>Fecha</label><input id="aFecha" type="date" onchange="autoTipoDia()"></div>
-            <div class="field"><label>Trabajador</label><select id="aTrabajador" onchange="autoValorDia()"></select></div>
-            <div class="field"><label>Tipo de día</label><select id="aTipo" onchange="autoValorDia()"><option>Normal</option><option>Sábado</option><option>Domingo</option><option>Feriado</option></select></div>
-            <div class="field"><label>Hora entrada</label><input id="aEntrada" type="time" value="08:00"></div>
-            <div class="field"><label>Hora salida</label><input id="aSalida" type="time" value="18:00"></div>
-            <div class="field"><label>Valor del día <span class="muted">(auto según cargo, editable)</span></label><input id="aValor" type="number" min="0"></div>
-          </div>
-          <div class="field" style="margin-top:12px"><label>Observación</label><input id="aObs"></div>
-          <div style="display:flex;gap:10px;margin-top:12px">
-            <button class="btn" id="aGuardarBtn" onclick="guardarAsistencia()">Registrar día</button>
-            <button class="btn ghost" id="aCancelarBtn" style="display:none" onclick="cancelarEdicionAsistencia()">Cancelar edición</button>
-          </div>
-        </div>
-        <div class="filters">
-          <select id="filAsiTrab" onchange="renderAsistencia()"><option value="">Todos los trabajadores</option></select>
-          <span class="periodo" data-pfx="asi" style="display:contents"></span>
-          <select id="filAsiPag" onchange="renderAsistencia()"><option value="">Pagados y pendientes</option><option value="NO">Solo pendientes</option><option value="SI">Solo pagados</option></select>
-        </div>
-        <div id="listaAsistencia"></div>
-      </div>
-
       <!-- Sueldos -->
-      <div class="subview" id="sub-sueldos">
+      <div class="subview active" id="sub-sueldos">
         <p class="muted" style="margin-bottom:12px">Cada trabajador muestra sus días pendientes: puedes <b>editar el valor</b> de cualquier día, <b>eliminarlo</b>, y pagar <b>parcial</b> desmarcando los días que no quieras incluir. Al pagar se genera el gasto (clasificación "Sueldos") y se refleja en el dashboard.</p>
         <div id="listaSueldos"></div>
         <div class="card">
@@ -449,6 +486,7 @@
           <option value="compras">Compras y gastos</option>
           <option value="facturas">Facturas</option>
           <option value="asistencia">Asistencia</option>
+          <option value="bitacora">Bitácora</option>
         </select>
         <span class="periodo" data-pfx="rep" style="display:contents"></span>
         <input id="repTxt" placeholder="Buscar…" oninput="renderReporte()">
@@ -522,7 +560,8 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxrpItwf_lq-cEs4oo6hHSo
 const IVA = 0.19;
 let S = { token:null, nombre:'', rol:'', usuario:'', data:null, charts:{},
           editPedidoId:null, editFacturaId:null, editCompraId:null, editProvId:null,
-          editTrabId:null, editCargoId:null, editAsiId:null, fotoBase64:null };
+          editTrabId:null, editCargoId:null, fotoBase64:null,
+          calMes:null, calDiaSel:null };
 
 /* ================= UTILIDADES ================= */
 const $ = id => document.getElementById(id);
@@ -680,7 +719,7 @@ function enPeriodo(pfx, fecha){
 }
 
 function refrescarPeriodo(pfx){
-  const fn = {dash:renderDashboard, ped:renderPedidos, fac:renderFacturas, com:renderCompras, asi:renderAsistencia, rep:renderReporte}[pfx];
+  const fn = {dash:renderDashboard, ped:renderPedidos, fac:renderFacturas, com:renderCompras, rep:renderReporte}[pfx];
   if(fn) fn();
 }
 
@@ -738,6 +777,7 @@ $('tabs').addEventListener('click', ev=>{
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   $('view-'+b.dataset.view).classList.add('active');
   if(b.dataset.view==='dashboard') renderDashboard();
+  if(b.dataset.view==='calendario') renderCalendario();
 });
 $('gastosTabs').addEventListener('click', ev=>{
   const b = ev.target.closest('button'); if(!b) return;
@@ -757,7 +797,7 @@ function renderTodo(){
   renderPrecios();
   renderTrabajadores();
   renderCargos();
-  renderAsistencia();
+  renderCalendario();
   renderSueldos();
   renderArriendos();
   renderReporte();
@@ -771,11 +811,6 @@ function llenarDatalists(){
   const adebo = (S.data.facturas||[]).filter(f=>f.Tipo==='Adebo')
     .sort((a,b)=>String(b.Fecha).localeCompare(String(a.Fecha)));
   $('dlAdebo').innerHTML = adebo.map(f=>`<option value="${esc(f.Numero)}">Adebo ${esc(f.Numero)} · ${esc(String(f.Detalle).slice(0,30))} · ${CLP(f.Total)}</option>`).join('');
-  // Trabajadores activos
-  const trabs = (S.data.trabajadores||[]).filter(t=>String(t.Activo).toUpperCase()!=='NO');
-  $('aTrabajador').innerHTML = trabs.map(t=>`<option value="${t.ID}">${esc(t.Nombre)}</option>`).join('');
-  $('filAsiTrab').innerHTML = '<option value="">Todos los trabajadores</option>' +
-    (S.data.trabajadores||[]).map(t=>`<option value="${esc(t.Nombre)}">${esc(t.Nombre)}</option>`).join('');
   // Cargos para el form trabajador
   $('tCargo').innerHTML = '<option value="">— Sin cargo —</option>' +
     (S.data.cargos||[]).map(c=>`<option value="${c.ID}">${esc(c.Nombre)}</option>`).join('');
@@ -1539,83 +1574,237 @@ function renderCargos(){
   ) : '<div class="empty">Crea primero los cargos con sus valores por día.</div>';
 }
 
-/* ================= GASTOS: ASISTENCIA ================= */
-function autoTipoDia(){
-  const f = $('aFecha').value;
-  if(!f) return;
-  const dia = new Date(f+'T12:00:00').getDay();
-  $('aTipo').value = dia===6 ? 'Sábado' : dia===0 ? 'Domingo' : 'Normal';
-  autoValorDia();
+/* ================= CALENDARIO Y BITÁCORA ================= */
+const DIAS_LARGO = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+const MESES_LARGO = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+/* Feriados chilenos de fecha fija (los movibles se marcan a mano) */
+const FERIADOS_FIJOS = ['01-01','05-01','05-21','06-20','06-29','07-16','08-15','09-18','09-19','10-12','10-31','11-01','12-08','12-25'];
+const esFeriado = f => FERIADOS_FIJOS.indexOf(String(f).slice(5,10)) >= 0;
+
+function tipoDiaDe(fecha){
+  if(esFeriado(fecha)) return 'Feriado';
+  const d = new Date(fecha+'T12:00:00').getDay();
+  return d===6 ? 'Sábado' : d===0 ? 'Domingo' : 'Normal';
 }
 
-function autoValorDia(){
-  const t = (S.data.trabajadores||[]).find(x=>String(x.ID)===$('aTrabajador').value);
-  if(!t) return;
-  const c = (S.data.cargos||[]).find(x=>String(x.ID)===String(t.CargoID));
-  if(!c) return;
-  const tipo = $('aTipo').value;
-  const v = tipo==='Sábado'?c.ValorSabado : tipo==='Domingo'?c.ValorDomingo : tipo==='Feriado'?c.ValorFeriado : c.ValorNormal;
-  $('aValor').value = Math.round(Number(v)||0);
+function valorCargo(trabajador, tipoDia){
+  const c = (S.data.cargos||[]).find(x=>String(x.ID)===String(trabajador.CargoID));
+  if(!c) return 0;
+  const v = tipoDia==='Sábado'?c.ValorSabado : tipoDia==='Domingo'?c.ValorDomingo : tipoDia==='Feriado'?c.ValorFeriado : c.ValorNormal;
+  return Math.round(Number(v)||0);
 }
 
-function cancelarEdicionAsistencia(){
-  S.editAsiId = null;
-  $('aGuardarBtn').textContent = 'Registrar día';
-  $('aCancelarBtn').style.display = 'none';
-  $('aObs').value=''; $('aFecha').value = hoyISO(); autoTipoDia();
+function asistenciaDe(fecha){
+  return (S.data.asistencia||[]).filter(a=>String(a.Fecha).slice(0,10)===fecha);
+}
+function bitacoraDe(fecha){
+  return (S.data.bitacora||[]).find(b=>String(b.Fecha).slice(0,10)===fecha);
 }
 
-function editarAsistencia(id){
-  const a = (S.data.asistencia||[]).find(x=>String(x.ID)===String(id));
-  if(!a) return;
-  S.editAsiId = id;
-  $('aGuardarBtn').textContent = 'Guardar cambios';
-  $('aCancelarBtn').style.display = 'inline-block';
-  $('aFecha').value = String(a.Fecha||'').slice(0,10);
-  $('aTrabajador').value = a.TrabajadorID||'';
-  $('aTipo').value = a.TipoDia||'Normal';
-  $('aEntrada').value = a.HoraEntrada||'08:00'; $('aSalida').value = a.HoraSalida||'18:00';
-  $('aValor').value = a.ValorDia||''; $('aObs').value = a.Observacion||'';
-  $('sub-asistencia').scrollIntoView({behavior:'smooth'});
+function mesCal(delta){
+  const [y,m] = S.calMes.split('-').map(Number);
+  const d = new Date(y, m-1+delta, 1);
+  S.calMes = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  S.calDiaSel = null;
+  renderCalendario();
 }
 
-async function guardarAsistencia(){
-  const t = (S.data.trabajadores||[]).find(x=>String(x.ID)===$('aTrabajador').value);
-  if(!t) return toast('Selecciona un trabajador (créalo primero en "Trabajadores y cargos")','err');
-  if(!$('aFecha').value) return toast('Falta la fecha','err');
-  const asistencia = {
-    fecha:$('aFecha').value, trabajadorId:t.ID, trabajador:t.Nombre,
-    tipoDia:$('aTipo').value, horaEntrada:$('aEntrada').value, horaSalida:$('aSalida').value,
-    valorDia:+$('aValor').value||0, observacion:$('aObs').value.trim()
-  };
+function irHoyCal(){
+  S.calMes = hoyISO().slice(0,7);
+  S.calDiaSel = hoyISO();
+  renderCalendario();
+}
+
+function renderCalendario(){
+  if(!S.data) return;
+  if(!S.calMes) S.calMes = hoyISO().slice(0,7);
+  const [y,m] = S.calMes.split('-').map(Number);
+  $('calTitulo').textContent = `${MESES_LARGO[m-1]} ${y}`;
+
+  const primero = new Date(y, m-1, 1);
+  const offset = (primero.getDay()+6)%7;          // lunes = 0
+  const nDias = new Date(y, m, 0).getDate();
+  const hoy = hoyISO();
+
+  let html = '';
+  for(let i=0;i<offset;i++) html += '<div class="cal-cell vacio"></div>';
+  for(let d=1; d<=nDias; d++){
+    const fecha = `${S.calMes}-${String(d).padStart(2,'0')}`;
+    const as = asistenciaDe(fecha);
+    const bit = bitacoraDe(fecha);
+    const tipo = tipoDiaDe(fecha);
+    const cls = ['cal-cell'];
+    if(fecha===hoy) cls.push('hoy');
+    if(fecha===S.calDiaSel) cls.push('sel');
+    if(tipo==='Feriado') cls.push('feriado');
+    else if(tipo==='Sábado'||tipo==='Domingo') cls.push('finde');
+    const nombres = as.slice(0,3).map(a=>esc(String(a.Trabajador).split(' ')[0])).join(', ') + (as.length>3?` +${as.length-3}`:'');
+    html += `<button class="${cls.join(' ')}" onclick="abrirDia('${fecha}')">
+      <span class="cal-num">${d}</span>
+      <span>${as.length?`<span class="cal-chip">${as.length}</span>`:''}${bit?' <span class="cal-bit">📝</span>':''}</span>
+      ${as.length?`<span class="cal-nombres">${nombres}</span>`:''}
+    </button>`;
+  }
+  $('calGrid').innerHTML = html;
+
+  // Resumen del mes
+  const delMes = (S.data.asistencia||[]).filter(a=>String(a.Fecha).slice(0,7)===S.calMes);
+  const costo = delMes.reduce((s,a)=>s+Number(a.ValorDia||0),0);
+  const diasCon = new Set(delMes.map(a=>String(a.Fecha).slice(0,10))).size;
+  const bits = (S.data.bitacora||[]).filter(b=>String(b.Fecha).slice(0,7)===S.calMes);
+  $('calResumen').innerHTML = `
+    <div class="kpi" style="cursor:default"><div class="lab">Días con trabajo</div><div class="val num">${diasCon}</div><div class="sub">Días del mes con al menos una persona</div></div>
+    <div class="kpi" style="cursor:default"><div class="lab">Jornadas</div><div class="val num">${delMes.length}</div><div class="sub">Total días-persona del mes</div></div>
+    <div class="kpi sage" style="cursor:default"><div class="lab">Costo mano de obra</div><div class="val num">${CLP(costo)}</div><div class="sub">Pagado o por pagar</div></div>
+    <div class="kpi" style="cursor:default"><div class="lab">Bitácoras</div><div class="val num">${bits.length}</div><div class="sub">Días con registro de lo realizado</div></div>`;
+
+  // Bitácoras del mes
+  const ordenadas = bits.slice().sort((a,b)=>String(b.Fecha).localeCompare(String(a.Fecha)));
+  $('calBitacoras').innerHTML = ordenadas.length ? ordenadas.map(b=>{
+    const f = String(b.Fecha).slice(0,10);
+    const dd = new Date(f+'T12:00:00');
+    return `<div style="border-top:1px solid var(--line);padding:10px 0">
+      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <b style="font-size:13.5px;text-transform:capitalize">${DIAS_LARGO[dd.getDay()]} ${dd.getDate()} de ${MESES_LARGO[dd.getMonth()]}</b>
+        <span style="display:flex;gap:8px;align-items:center">
+          <span class="muted">${esc(b.Autor||'')}</span>
+          <button class="btn ghost small" onclick="abrirDia('${f}')">Abrir día</button>
+        </span>
+      </div>
+      <p style="margin-top:6px;font-size:14px;white-space:pre-wrap">${esc(b.Texto)}</p>
+    </div>`;
+  }).join('') : '<div class="empty">Sin bitácoras este mes.</div>';
+
+  if(S.calDiaSel && String(S.calDiaSel).slice(0,7)===S.calMes) renderPanelDia();
+  else $('calPanel').innerHTML = '<div class="empty">Toca un día del calendario para registrar quién asistió y qué se hizo.</div>';
+}
+
+function abrirDia(fecha){
+  S.calDiaSel = fecha;
+  if(String(fecha).slice(0,7)!==S.calMes){ S.calMes = String(fecha).slice(0,7); }
+  renderCalendario();
+  $('calPanel').scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+function renderPanelDia(){
+  const fecha = S.calDiaSel;
+  const dd = new Date(fecha+'T12:00:00');
+  const tipoAuto = tipoDiaDe(fecha);
+  const as = asistenciaDe(fecha);
+  const bit = bitacoraDe(fecha);
+  const trabs = (S.data.trabajadores||[]).filter(t=>String(t.Activo).toUpperCase()!=='NO');
+
+  if(!trabs.length){
+    $('calPanel').innerHTML = '<div class="empty">Primero crea los cargos y trabajadores en <b>Gastos → Trabajadores y cargos</b>.</div>';
+    return;
+  }
+
+  const filas = trabs.map(t=>{
+    const reg = as.find(a=>String(a.TrabajadorID)===String(t.ID));
+    const pagado = reg && String(reg.Pagado).toUpperCase()==='SI';
+    const tipo = reg ? (reg.TipoDia||tipoAuto) : tipoAuto;
+    const valor = reg ? Math.round(Number(reg.ValorDia)||0) : valorCargo(t, tipoAuto);
+    return `<div class="trab-row ${reg?'':'off'}" data-tid="${t.ID}" data-nombre="${esc(t.Nombre)}">
+      <input type="checkbox" class="asisChk" ${reg?'checked':''} ${pagado?'disabled':''} onchange="toggleAsis(this)">
+      <div><b>${esc(t.Nombre)}</b>${t.Cargo?`<div class="muted" style="font-size:12px">${esc(t.Cargo)}</div>`:''}
+        ${pagado?'<span class="pill p-pag" style="margin-top:4px">Pagado 🔒</span>':''}</div>
+      <span class="horas"><input type="time" class="asisEnt" value="${reg?(reg.HoraEntrada||'08:00'):'08:00'}" ${pagado?'disabled':''}>
+      <input type="time" class="asisSal" value="${reg?(reg.HoraSalida||'18:00'):'18:00'}" ${pagado?'disabled':''}></span>
+      <input type="number" min="0" class="asisVal" value="${valor}" ${pagado?'disabled':''} title="Valor del día (editable)">
+      <input type="hidden" class="asisTipo" value="${tipo}">
+    </div>`;
+  }).join('');
+
+  $('calPanel').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <h3 style="font-size:16px;text-transform:capitalize">${DIAS_LARGO[dd.getDay()]} ${dd.getDate()} de ${MESES_LARGO[dd.getMonth()]} de ${dd.getFullYear()}</h3>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <label class="muted" style="font-size:12px">Tipo de día</label>
+        <select id="calTipoDia" onchange="recalcValoresDia()" style="width:auto">
+          ${['Normal','Sábado','Domingo','Feriado'].map(t=>`<option ${t===tipoAuto?'selected':''}>${t}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <p class="muted" style="margin:8px 0 4px">Marca quién asistió. Los valores se calculan según el cargo y el tipo de día, y puedes ajustarlos a mano.</p>
+    <div style="display:flex;gap:8px;margin:10px 0">
+      <button class="btn ghost small" onclick="marcarTodosDia(true)">Marcar todos</button>
+      <button class="btn ghost small" onclick="marcarTodosDia(false)">Ninguno</button>
+      <span class="muted" style="margin-left:auto;align-self:center">Total del día: <b id="calTotalDia" class="num">$0</b></span>
+    </div>
+    ${filas}
+    <hr class="sep">
+    <div class="field">
+      <label>Bitácora del día <span class="muted">— ¿qué se hizo? (producción, incidentes, mantención, visitas…)</span></label>
+      <textarea id="calBitacora" rows="4" placeholder="Ej: Se fabricaron 12 bloques modelo 21262. Se detuvo la prensa 1 hora por falla eléctrica.">${esc(bit?bit.Texto:'')}</textarea>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+      <button class="btn" id="calGuardarBtn" onclick="guardarDiaCal()">Guardar día</button>
+      <button class="btn ghost" onclick="S.calDiaSel=null;renderCalendario()">Cerrar</button>
+    </div>`;
+  totalDia();
+}
+
+function toggleAsis(chk){
+  chk.closest('.trab-row').classList.toggle('off', !chk.checked);
+  totalDia();
+}
+
+function marcarTodosDia(v){
+  document.querySelectorAll('#calPanel .trab-row').forEach(r=>{
+    const c = r.querySelector('.asisChk');
+    if(c.disabled) return;
+    c.checked = v;
+    r.classList.toggle('off', !v);
+  });
+  totalDia();
+}
+
+function recalcValoresDia(){
+  const tipo = $('calTipoDia').value;
+  document.querySelectorAll('#calPanel .trab-row').forEach(r=>{
+    if(r.querySelector('.asisChk').disabled) return; // pagado: no se toca
+    const t = (S.data.trabajadores||[]).find(x=>String(x.ID)===r.dataset.tid);
+    if(t) r.querySelector('.asisVal').value = valorCargo(t, tipo);
+    r.querySelector('.asisTipo').value = tipo;
+  });
+  totalDia();
+}
+
+function totalDia(){
+  let t=0;
+  document.querySelectorAll('#calPanel .trab-row').forEach(r=>{
+    if(r.querySelector('.asisChk').checked) t += +r.querySelector('.asisVal').value||0;
+  });
+  const el = $('calTotalDia');
+  if(el) el.textContent = CLP(t);
+}
+
+async function guardarDiaCal(){
+  const fecha = S.calDiaSel;
+  const tipo = $('calTipoDia').value;
+  const asistentes = [];
+  document.querySelectorAll('#calPanel .trab-row').forEach(r=>{
+    if(!r.querySelector('.asisChk').checked) return;
+    asistentes.push({
+      trabajadorId: r.dataset.tid,
+      trabajador: (S.data.trabajadores||[]).find(x=>String(x.ID)===r.dataset.tid)?.Nombre || r.dataset.nombre,
+      tipoDia: r.querySelector('.asisChk').disabled ? r.querySelector('.asisTipo').value : tipo,
+      horaEntrada: r.querySelector('.asisEnt').value,
+      horaSalida: r.querySelector('.asisSal').value,
+      valorDia: +r.querySelector('.asisVal').value||0,
+      observacion: ''
+    });
+  });
+  const btn = $('calGuardarBtn'); btn.disabled = true;
   try{
-    if(S.editAsiId) await api({ action:'updateAsistencia', id:S.editAsiId, asistencia });
-    else await api({ action:'saveAsistencia', asistencia });
-    toast('Día registrado ✔','ok');
-    cancelarEdicionAsistencia();
+    const r = await api({ action:'guardarDia', fecha, asistentes, bitacora: $('calBitacora').value });
+    let msg = 'Día guardado ✔';
+    if(r.bloqueados && r.bloqueados.length) msg += ` — ojo: ${[...new Set(r.bloqueados)].join(', ')} ya tenía(n) el día pagado y no se modificó`;
+    toast(msg, 'ok');
     await cargarDatos();
   }catch(e){ toast(e.message,'err'); }
-}
-
-function renderAsistencia(){
-  if(!S.data) return;
-  const trab=$('filAsiTrab').value, pag=$('filAsiPag').value;
-  let as = (S.data.asistencia||[]).slice().sort((a,b)=>String(b.Fecha).localeCompare(String(a.Fecha)));
-  as = as.filter(a=>enPeriodo('asi', a.Fecha));
-  if(trab) as = as.filter(a=>a.Trabajador===trab);
-  if(pag) as = as.filter(a=>String(a.Pagado).toUpperCase()===pag);
-  const total = as.reduce((s,a)=>s+Number(a.ValorDia||0),0);
-  $('listaAsistencia').innerHTML = as.length ?
-    `<p class="muted" style="margin-bottom:8px">${as.length} días · ${CLP(total)}</p>` + tabla(
-    ['Fecha','Trabajador','Tipo','Entrada','Salida','Valor día','Pagado',''],
-    as.map(a=>{
-      const pagado = String(a.Pagado).toUpperCase()==='SI';
-      return [a.Fecha, esc(a.Trabajador), a.TipoDia, a.HoraEntrada, a.HoraSalida,
-        {html:`<span class="num">${CLP(a.ValorDia)}</span>`,cls:'r'},
-        {html: pagado?'<span class="pill p-pag">Pagado</span>':'<span class="pill p-pen">Pendiente</span>'},
-        {html: pagado? `<span class="muted" title="Día pagado. Para modificarlo, elimina su pago en Sueldos pendientes → Pagos realizados">🔒</span>` : `<div style="display:flex;gap:6px"><button class="btn ghost small" onclick="editarAsistencia('${a.ID}')">Editar</button>${S.rol==='admin'?`<button class="btn danger small" onclick="eliminarRegistro('Asistencia','${a.ID}','el día ${a.Fecha} de ${esc(a.Trabajador)}')">Eliminar</button>`:''}</div>`}];
-    })
-  ) : '<div class="empty">Sin días registrados con ese filtro.</div>';
+  btn.disabled = false;
 }
 
 /* ================= GASTOS: SUELDOS ================= */
@@ -1686,7 +1875,7 @@ async function editarValorDia(id, input){
     toast('Valor del día actualizado ✔','ok');
     const blk = input.closest('[id^=sueldoBlk]');
     if(blk) totalSelSueldo(+blk.id.replace('sueldoBlk',''));
-    renderAsistencia();
+    renderCalendario();
     renderDashboard();
   }catch(e){
     toast(e.message,'err');
@@ -1950,6 +2139,29 @@ function datosReporte(){
         {html:`<span class="num"><b>${CLP(f.Total)}</b></span>`,cls:'r'}, {html:pillEstado(f.Estado)}]) };
   }
 
+  if(tipo==='bitacora'){
+    const rows=(S.data.bitacora||[]).filter(b=>enPeriodo('rep', b.Fecha))
+      .filter(b=>pasaTxt([b.Texto,b.Autor].join(' ')))
+      .sort((a,b)=>String(b.Fecha).localeCompare(String(a.Fecha)));
+    const asisPorDia = {};
+    (S.data.asistencia||[]).forEach(a=>{ const f=String(a.Fecha).slice(0,10); (asisPorDia[f]=asisPorDia[f]||[]).push(a.Trabajador); });
+    const exp = rows.map(b=>{
+      const f = String(b.Fecha).slice(0,10);
+      return { Fecha:f, 'Tipo de día':tipoDiaDe(f),
+        Asistentes:(asisPorDia[f]||[]).join(', '), 'N° asistentes':(asisPorDia[f]||[]).length,
+        Bitacora:b.Texto, Autor:b.Autor };
+    });
+    return { nombre:'bitacora', exp,
+      resumen:[['Días con bitácora',exp.length],['Jornadas en esos días',exp.reduce((s,r)=>s+r['N° asistentes'],0)]],
+      head:['Fecha','Tipo','Asistentes','Bitácora'],
+      rows:rows.map(b=>{
+        const f = String(b.Fecha).slice(0,10);
+        return [f, tipoDiaDe(f),
+          {html:`<span class="muted">${esc((asisPorDia[f]||[]).join(', ')) || '—'}</span>`},
+          {html:`<span style="white-space:pre-wrap">${esc(b.Texto)}</span>`}];
+      }) };
+  }
+
   // asistencia
   const rows=(S.data.asistencia||[]).filter(a=>enPeriodo('rep', a.Fecha))
     .filter(a=>pasaTxt([a.Trabajador,a.TipoDia,a.Observacion].join(' ')))
@@ -2007,8 +2219,7 @@ function tabla(head, rows){
 
 /* Valores iniciales de formularios con fecha */
 document.addEventListener('DOMContentLoaded', ()=>{
-  ['aFecha','arFecha'].forEach(i=>{ if($(i)) $(i).value = hoyISO(); });
-  autoTipoDia && $('aFecha').value && setTimeout(()=>{ try{autoTipoDia()}catch(e){} },0);
+  if($('arFecha')) $('arFecha').value = hoyISO();
 });
 
 /* PWA: service worker (permite instalar la app en el celular) */
